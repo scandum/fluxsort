@@ -8,15 +8,15 @@ Fluxsort starts out with an analyzer that detects fully sorted arrays and sorts 
 
 Partitioning
 ------------
-Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the pseudomedian of 15 elements, for partitions smaller than 1024 elements the pseudomedian of 9 elements is used. The median element is also called the pivot. Partitians smaller than 24 elements are sorted with quadsort optimized to use unguarded insertion sort for small arrays.
+Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the pseudomedian of 9 for partitions smaller than 1024 elements, and the pseudomedian of 27 otherwise. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 24 elements are sorted with quadsort.
 
-After obtaining a pivot the array is parsed from start to end, elements smaller than the pivot are copied in-place to the start of the array, elements greater than the pivot are copied to swap memory. The partitioning routine is called recursively on the two partitions in main and swap memory.
+After obtaining a pivot the array is parsed from start to end. Elements smaller than the pivot are copied in-place to the start of the array, elements greater than the pivot are copied to swap memory. The partitioning routine is called recursively on the two partitions in main and swap memory.
 
-Recursively partitioning through both swap and main memory is accomplished through the ptx pointer, which despite being simple in implementation is likely a novel technique since the logic behind it is a brain twister.
+Recursively partitioning through both swap and main memory is accomplished through the ptx pointer, which despite being simple in implementation is likely a novel technique since the logic behind it is a bit of a brain-twister.
 
 Worst case handling
 -------------------
-To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the chance of a false positive is 1 in 40 million for the pseudomedian of 15, and 1 in 1 million for the pseudomedian of 9.
+To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the chance of a false positive is 1 in 4 billion for the pseudomedian of 27, and 1 in 65536 for the pseudomedian of 9.
 
 Combined with the analyzer fluxsort starts out with this makes the existence of killer patterns unlikely, other than a 2x performance slowdown by triggering the use of quadsort prematurely.
 
@@ -24,7 +24,7 @@ Branchless optimizations
 ------------------------
 Fluxsort uses a branchless comparison optimization similar to the method described in "BlockQuicksort: How Branch Mispredictions don't affect Quicksort" by Stefan Edelkamp and Armin Weiss.
 
-Median selection uses a novel branchless comparison optimization that selects the pseudomedian of 9 using between 8 and 12 comparisons, and the pseudomedian of 15 using between 14 and 25 comparisons.
+Median selection uses a novel branchless comparison technique that selects the pseudomedian of 9 using between 8 and 12 comparisons, and the pseudomedian of 27 using between 32 and 48 comparisons.
 
 These optimizations do not work as well when the comparisons themselves are branched and the biggest performance increase is on 32 and 64 bit integers.
 
@@ -66,7 +66,7 @@ People wanting to port fluxsort might want to have a look at [twinsort](https://
 
 Visualization
 -------------
-In the visualization below four tests are performed. Random, Generic, Random Half, and Ascending Tiles.
+In the visualization below four tests are performed. Random, Generic, Random Half, and Ascending Tiles. Partitians greater than 48 elements use the pseudomedian of 15 to select the pivot.
 
 [![fluxsort visualization](https://github.com/scandum/fluxsort/blob/main/images/fluxsort.gif)]
 
