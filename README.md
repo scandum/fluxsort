@@ -1,6 +1,6 @@
 Intro
 -----
-This document describes a partitioning stable adaptive comparison-based sort named fluxsort.
+This document describes a partitioning stable adaptive comparison-based sort named fluxsort. Benchmarks and a visualization are available at the bottom.
 
 Analyzer
 --------
@@ -68,7 +68,7 @@ Visualization
 -------------
 In the visualization below four tests are performed. Random, Generic, Random Half, and Ascending Tiles.
 
-[![fluxsort visualization](https://github.com/scandum/fluxsort/blob/main/images/fluxsort.gif)](https://www.youtube.com/watch?v=DHC1qnV4mao)
+[![fluxsort visualization](https://github.com/scandum/fluxsort/blob/main/images/fluxsort.gif)]
 
 Benchmarks
 ----------
