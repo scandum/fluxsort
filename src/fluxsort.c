@@ -66,7 +66,7 @@ size_t FUNC(flux_analyze)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 
 	if (balance <= nmemb / 6 || balance >= nmemb / 6 * 5)
 	{
-		quadsort32(array, nmemb, cmp);
+		FUNC(quadsort)(array, nmemb, cmp);
 
 		return 1;
 	}
