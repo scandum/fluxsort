@@ -66,7 +66,7 @@ Visualization
 -------------
 In the visualization below four tests are performed on 512 elements: Random, Generic, Random Half, and Ascending Tiles. Partitions greater than 48 elements use the pseudomedian of 15 to select the pivot.
 
-[![fluxsort visualization](https://github.com/scandum/fluxsort/blob/main/images/fluxsort.gif)]
+[![fluxsort visualization](https://github.com/scandum/fluxsort/blob/main/images/fluxsort.gif)](https://youtu.be/pXPrCTi-gRE)
 
 Benchmarks
 ----------
