@@ -24,7 +24,7 @@
 */
 
 /*
-	fluxsort 1.1.4.3
+	fluxsort 1.1.4.4
 */
 
 #define FLUX_OUT 24
@@ -73,6 +73,30 @@ size_t FUNC(flux_analyze)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 	return 0;
 }
 
+void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp);
+
+size_t FUNC(median_of_sqrt)(VAR *array, size_t nmemb, CMPFUNC *cmp)
+{
+	VAR *pta, swap[256];
+	size_t cnt, sqrt, div;
+
+	for (sqrt = 256 ; sqrt * sqrt * 4 > nmemb ; sqrt /= 2);
+
+	div = nmemb / sqrt;
+
+	pta = array;
+
+	for (cnt = 0 ; cnt < sqrt ; cnt++)
+	{
+		swap[cnt] = pta[0];
+
+		pta += div;
+	}
+	FUNC(fluxsort)(swap, sqrt, cmp);
+
+	return swap[sqrt / 2];
+}
+
 size_t FUNC(median_of_five)(VAR *array, size_t v0, size_t v1, size_t v2, size_t v3, size_t v4, CMPFUNC *cmp)
 {
 	unsigned char t[4], val;
@@ -100,6 +124,19 @@ size_t FUNC(median_of_five)(VAR *array, size_t v0, size_t v1, size_t v2, size_t 
 	return t[3] == 2 ? v3 : v4;
 }
 
+VAR FUNC(median_of_twentyfive)(VAR *array, size_t nmemb, CMPFUNC *cmp)
+{
+	size_t v0, v1, v2, v3, v4, div = nmemb / 64;
+
+	v0 = FUNC(median_of_five)(array, div *  4, div *  1, div *  2, div *  8, div * 10, cmp);
+	v1 = FUNC(median_of_five)(array, div * 16, div * 12, div * 14, div * 18, div * 20, cmp);
+	v2 = FUNC(median_of_five)(array, div * 32, div * 24, div * 30, div * 34, div * 38, cmp);
+	v3 = FUNC(median_of_five)(array, div * 48, div * 42, div * 44, div * 50, div * 52, cmp);
+	v4 = FUNC(median_of_five)(array, div * 60, div * 54, div * 56, div * 62, div * 63, cmp);
+
+	return array[FUNC(median_of_five)(array, v2, v0, v1, v3, v4, cmp)];
+}
+
 size_t FUNC(median_of_three)(VAR *array, size_t v0, size_t v1, size_t v2, CMPFUNC *cmp)
 {
 	unsigned char t[2], val;
@@ -114,19 +151,6 @@ size_t FUNC(median_of_three)(VAR *array, size_t v0, size_t v1, size_t v2, CMPFUN
 	return t[1] == 1 ? v1 : v2;
 }
 
-VAR FUNC(median_of_fifteen)(VAR *array, size_t nmemb, CMPFUNC *cmp)
-{
-	size_t v0, v1, v2, v3, v4, div = nmemb / 16;
-
-	v0 = FUNC(median_of_three)(array, div * 2, div * 1, div * 3, cmp);
-	v1 = FUNC(median_of_three)(array, div * 5, div * 4, div * 6, cmp);
-	v2 = FUNC(median_of_three)(array, div * 8, div * 7, div * 9, cmp);
-	v3 = FUNC(median_of_three)(array, div * 11, div * 10, div * 12, cmp);
-	v4 = FUNC(median_of_three)(array, div * 14, div * 13, div * 15, cmp);
-
-	return array[FUNC(median_of_five)(array, v2, v0, v1, v3, v4, cmp)];
-}
-
 VAR FUNC(median_of_nine)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 {
 	size_t v0, v1, v2, div = nmemb / 16;
@@ -138,70 +162,109 @@ VAR FUNC(median_of_nine)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 	return array[FUNC(median_of_three)(array, v1, v0, v2, cmp)];
 }
 
-void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
+// As per suggestion by Marshall Lochbaum to improve generic data handling
+
+void FUNC(flux_reverse_partition)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
 {
-	unsigned char val;
-	size_t a_size, s_size;
-	VAR *pta, *pts, *pte, piv;
+	size_t cnt, val, m, a_size, s_size;
+	VAR *pta, *pts, piv;
 
-	if (nmemb > 1024)
-	{
-		piv = FUNC(median_of_fifteen)(ptx, nmemb, cmp);
-	}
-	else
-	{
-		piv = FUNC(median_of_nine)(ptx, nmemb, cmp);
-	}
-
-	pte = ptx + nmemb;
+	piv = swap[-1];
 
 	pta = array;
 	pts = swap;
 
-	while (ptx + 8 < pte)
+	for (m = 0, cnt = nmemb / 8 ; cnt ; cnt--)
 	{
-		val = cmp(ptx + 0, &piv) <= 0; *pta = ptx[0]; pta += val; *pts = ptx[0]; pts += !val;
-		val = cmp(ptx + 1, &piv) <= 0; *pta = ptx[1]; pta += val; *pts = ptx[1]; pts += !val;
-		val = cmp(ptx + 2, &piv) <= 0; *pta = ptx[2]; pta += val; *pts = ptx[2]; pts += !val;
-		val = cmp(ptx + 3, &piv) <= 0; *pta = ptx[3]; pta += val; *pts = ptx[3]; pts += !val;
-		val = cmp(ptx + 4, &piv) <= 0; *pta = ptx[4]; pta += val; *pts = ptx[4]; pts += !val;
-		val = cmp(ptx + 5, &piv) <= 0; *pta = ptx[5]; pta += val; *pts = ptx[5]; pts += !val;
-		val = cmp(ptx + 6, &piv) <= 0; *pta = ptx[6]; pta += val; *pts = ptx[6]; pts += !val;
-		val = cmp(ptx + 7, &piv) <= 0; *pta = ptx[7]; pta += val; *pts = ptx[7]; pts += !val;
-
-		ptx += 8;
+		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
 	}
 
-	while (ptx < pte)
+	for (cnt = nmemb % 8 ; cnt ; cnt--)
 	{
-		val = cmp(ptx, &piv) <= 0;
-		*pta = *ptx; pta += val;
-		*pts = *ptx; pts += !val;
-
-		ptx++;
+		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
 	}
+	a_size = m;
+	s_size = nmemb - a_size;
 
-	s_size = pts - swap;
-	a_size = nmemb - s_size;
+	memcpy(array + a_size, swap, s_size * sizeof(VAR));
+	FUNC(quadsort_swap)(array, swap, a_size, cmp);
+}
+
+void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
+{
+	size_t a_size, s_size;
+
+	{
+		size_t cnt, val, m;
+		VAR *pta, *pts, piv;
+
+		if (nmemb > 1024)
+		{
+			if (nmemb > 65536)
+			{
+				piv = FUNC(median_of_sqrt)(ptx, nmemb, cmp);
+			}
+			else
+			{
+				piv = FUNC(median_of_twentyfive)(ptx, nmemb, cmp);
+			}
+		}
+		else
+		{
+			piv = FUNC(median_of_nine)(ptx, nmemb, cmp);
+		}
+
+		pta = array;
+		pts = swap;
+
+		for (m = 0, cnt = nmemb / 8 ; cnt ; cnt--)
+		{
+			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		}
+
+		for (cnt = nmemb % 8 ; cnt ; cnt--)
+		{
+			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		}
+		swap[-1] = piv;
+
+		a_size = m;
+		s_size = nmemb - a_size;
+	}
 
 	if (a_size <= s_size / 16 || s_size <= FLUX_OUT)
 	{
-		memcpy(pta, swap, s_size * sizeof(VAR));
-		FUNC(quadsort_swap)(pta, swap, s_size, cmp);
+		if (s_size == 0)
+		{
+			return FUNC(flux_reverse_partition)(array, swap, array, a_size, cmp);
+		}
+		memcpy(array + a_size, swap, s_size * sizeof(VAR));
+		FUNC(quadsort_swap)(array + a_size, swap, s_size, cmp);
 	}
 	else
 	{
-		FUNC(flux_partition)(pta, swap, swap, s_size, cmp);
+		FUNC(flux_partition)(array + a_size, swap, swap, s_size, cmp);
 	}
 
 	if (s_size <= a_size / 16 || a_size <= FLUX_OUT)
 	{
-		FUNC(quadsort_swap)(array, swap, a_size, cmp);
+		return FUNC(quadsort_swap)(array, swap, a_size, cmp);
 	}
-	else
-	{
-		FUNC(flux_partition)(array, swap, array, a_size, cmp);
-	}
+	FUNC(flux_partition)(array, swap, array, a_size, cmp);
 }
 
 void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp)
@@ -214,8 +277,24 @@ void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp)
 	{
 		VAR *swap = malloc(nmemb * sizeof(VAR));
 
-		FUNC(flux_partition)(array, swap, array, nmemb, cmp);
+		if (swap == NULL)
+		{
+			return FUNC(quadsort)(array, nmemb, cmp);
+		}
+		FUNC(flux_partition)(array, swap + 1, array, nmemb, cmp);
 
 		free(swap);
+	}
+}
+
+void FUNC(fluxsort_swap)(void *array, void *swap, size_t nmemb, CMPFUNC *cmp)
+{
+	if (nmemb < 32)
+	{
+		FUNC(tail_swap)(array, nmemb, cmp);
+	}
+	else if (FUNC(flux_analyze)(array, nmemb, cmp) == 0)
+	{
+		FUNC(flux_partition)(array, swap + 1, array, nmemb, cmp);
 	}
 }
