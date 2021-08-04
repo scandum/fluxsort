@@ -8,7 +8,7 @@ Fluxsort starts out with an analyzer that detects fully sorted arrays and sorts 
 
 Partitioning
 ------------
-Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the pseudomedian of 9 for partitions smaller than 1024 elements, and the pseudomedian of 15 otherwise. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 24 elements are sorted with quadsort.
+Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the pseudomedian of 9 for partitions smaller than 1024 elements, and the pseudomedian of 25 otherwise. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 24 elements are sorted with quadsort.
 
 After obtaining a pivot the array is parsed from start to end. Elements smaller than the pivot are copied in-place to the start of the array, elements greater than the pivot are copied to swap memory. The partitioning routine is called recursively on the two partitions in main and swap memory.
 
@@ -16,7 +16,7 @@ Recursively partitioning through both swap and main memory is accomplished throu
 
 Worst case handling
 -------------------
-To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the chance of a false positive is 1 in 65,536 for the pseudomedian of 9 and 1 in 16,777,216 for the pseudomedian of 15.
+To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the chance of a false positive is 1 in 65,536 for the pseudomedian of 9 and 1 in 68,719,476,736 for the pseudomedian of 25.
 
 Combined with the analyzer fluxsort starts out with this makes the existence of killer patterns unlikely, other than a 2x performance slowdown by triggering the use of quadsort prematurely.
 
@@ -24,7 +24,7 @@ Branchless optimizations
 ------------------------
 Fluxsort uses a branchless comparison optimization similar to the method described in "BlockQuicksort: How Branch Mispredictions don't affect Quicksort" by Stefan Edelkamp and Armin Weiss.
 
-Median selection uses a novel branchless comparison technique that selects the pseudomedian of 9 using between 8 and 12 (10.66 average) comparisons, and the pseudomedian of 15 using between 14 and 25 (21.33 average) comparisons.
+Median selection uses a novel branchless comparison technique that selects the pseudomedian of 9 using between 8 and 12 (10.66 average) comparisons, and the pseudomedian of 25 using between 24 and 60 (48 average) comparisons.
 
 These optimizations do not work as well when the comparisons themselves are branched and the largest performance increase is on 32 and 64 bit integers.
 
