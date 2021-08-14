@@ -31,11 +31,21 @@
 
 size_t FUNC(flux_analyze)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 {
-	size_t cnt, balance = 0;
+	char loop, dist, last = -1;
+	size_t cnt, balance = 0, streaks = 0;
 	VAR *pta, *ptb, swap;
 
 	pta = array;
-	cnt = nmemb;
+
+	for (cnt = nmemb ; cnt > 16 ; cnt -= 16)
+	{
+		for (dist = 0, loop = 16 ; loop ; loop--)
+		{
+			dist += cmp(pta, pta + 1) > 0; pta++;
+		}
+		streaks += dist == last; last = dist;
+		balance += dist;
+	}
 
 	while (--cnt)
 	{
@@ -64,16 +74,24 @@ size_t FUNC(flux_analyze)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 		return 1;
 	}
 
-	if (balance <= nmemb / 6 || balance >= nmemb / 6 * 5)
+	if (streaks > nmemb / 20)
 	{
 		FUNC(quadsort)(array, nmemb, cmp);
 
 		return 1;
 	}
+
+	if (balance <= nmemb / 6 || balance >= nmemb - nmemb / 6)
+	{
+		FUNC(quadsort)(array, nmemb, cmp);
+
+		return 1;
+	}
+
 	return 0;
 }
 
-void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp);
+void FUNC(fluxsort)(VAR *array, size_t nmemb, CMPFUNC *cmp);
 
 size_t FUNC(median_of_sqrt)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 {
@@ -84,7 +102,7 @@ size_t FUNC(median_of_sqrt)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 
 	div = nmemb / sqrt;
 
-	pta = array;
+	pta = array + rand() % sqrt;
 
 	for (cnt = 0 ; cnt < sqrt ; cnt++)
 	{
@@ -164,40 +182,43 @@ VAR FUNC(median_of_nine)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 
 // As per suggestion by Marshall Lochbaum to improve generic data handling
 
-void FUNC(flux_reverse_partition)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
+void FUNC(flux_reverse_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *ptp, size_t nmemb, CMPFUNC *cmp)
 {
-	size_t cnt, val, m, a_size, s_size;
-	VAR *pta, *pts, piv;
+	size_t a_size, s_size;
 
-	piv = swap[-1];
-
-	pta = array;
-	pts = swap;
-
-	for (m = 0, cnt = nmemb / 8 ; cnt ; cnt--)
 	{
-		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
-		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
-		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
-		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
-		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
-		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
-		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
-		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
-	}
+		size_t cnt, val, m;
+		VAR *pta, *pts, piv;
 
-	for (cnt = nmemb % 8 ; cnt ; cnt--)
-	{
-		val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
-	}
-	a_size = m;
-	s_size = nmemb - a_size;
+		piv = *ptp;
 
+		pta = array;
+		pts = swap;
+
+		for (m = 0, cnt = nmemb / 8 ; cnt ; cnt--)
+		{
+			val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+			val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		}
+
+		for (cnt = nmemb % 8 ; cnt ; cnt--)
+		{
+			val = cmp(&piv, ptx) > 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
+		}
+		a_size = m;
+		s_size = nmemb - a_size;
+	}
 	memcpy(array + a_size, swap, s_size * sizeof(VAR));
 	FUNC(quadsort_swap)(array, swap, a_size, cmp);
 }
 
-void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
+void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *ptp, size_t nmemb, CMPFUNC *cmp)
 {
 	size_t a_size, s_size;
 
@@ -221,6 +242,12 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC
 			piv = FUNC(median_of_nine)(ptx, nmemb, cmp);
 		}
 
+		if (ptx == array && swap + nmemb < ptp && cmp(ptp, &piv) <= 0 && cmp(&piv, ptp) <= 0)
+		{
+			return FUNC(flux_reverse_partition)(array, swap, array, ptp, nmemb, cmp);
+		}
+		*--ptp = piv;
+
 		pta = array;
 		pts = swap;
 
@@ -240,7 +267,6 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC
 		{
 			val = cmp(ptx, &piv) <= 0; pts[-m] = pta[m] = *ptx++; m += val; pts++;
 		}
-		swap[-1] = piv;
 
 		a_size = m;
 		s_size = nmemb - a_size;
@@ -250,24 +276,27 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC
 	{
 		if (s_size == 0)
 		{
-			return FUNC(flux_reverse_partition)(array, swap, array, a_size, cmp);
+			return FUNC(flux_reverse_partition)(array, swap, array, ptp, a_size, cmp);
 		}
 		memcpy(array + a_size, swap, s_size * sizeof(VAR));
 		FUNC(quadsort_swap)(array + a_size, swap, s_size, cmp);
 	}
 	else
 	{
-		FUNC(flux_partition)(array + a_size, swap, swap, s_size, cmp);
+		FUNC(flux_partition)(array + a_size, swap, swap, ptp, s_size, cmp);
 	}
 
 	if (s_size <= a_size / 16 || a_size <= FLUX_OUT)
 	{
-		return FUNC(quadsort_swap)(array, swap, a_size, cmp);
+		FUNC(quadsort_swap)(array, swap, a_size, cmp);
 	}
-	FUNC(flux_partition)(array, swap, array, a_size, cmp);
+	else
+	{
+		FUNC(flux_partition)(array, swap, array, ptp, a_size, cmp);
+	}
 }
 
-void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp)
+void FUNC(fluxsort)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 {
 	if (nmemb < 32)
 	{
@@ -281,13 +310,13 @@ void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp)
 		{
 			return FUNC(quadsort)(array, nmemb, cmp);
 		}
-		FUNC(flux_partition)(array, swap + 1, array, nmemb, cmp);
+		FUNC(flux_partition)(array, swap, array, swap + nmemb, nmemb, cmp);
 
 		free(swap);
 	}
 }
 
-void FUNC(fluxsort_swap)(void *array, void *swap, size_t nmemb, CMPFUNC *cmp)
+void FUNC(fluxsort_swap)(VAR *array, VAR *swap, size_t nmemb, CMPFUNC *cmp)
 {
 	if (nmemb < 32)
 	{
@@ -295,6 +324,6 @@ void FUNC(fluxsort_swap)(void *array, void *swap, size_t nmemb, CMPFUNC *cmp)
 	}
 	else if (FUNC(flux_analyze)(array, nmemb, cmp) == 0)
 	{
-		FUNC(flux_partition)(array, swap + 1, array, nmemb, cmp);
+		FUNC(flux_partition)(array, swap, array, swap + nmemb, nmemb, cmp);
 	}
 }

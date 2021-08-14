@@ -27,10 +27,50 @@
 	quadsort 1.1.4.3
 */
 
-void FUNC(tail_swap)(VAR *array, unsigned char nmemb, CMPFUNC *cmp)
+void FUNC(unguarded_insert)(VAR *array, size_t offset, size_t nmemb, CMPFUNC *cmp)
+{
+	VAR key, *pta, *end;
+	size_t i, top;
+
+	for (i = offset ; i < nmemb ; i++)
+	{
+		pta = end = array + i;
+
+		if (cmp(--pta, end) <= 0)
+		{
+			continue;
+		}
+
+		key = *end;
+
+		if (cmp(array, &key) > 0)
+		{
+			top = i;
+
+			do
+			{
+				*end-- = *pta--;
+			}
+			while (--top);
+
+			*end = key;
+		}
+		else
+		{
+			do
+			{
+				*end-- = *pta--;
+			}
+			while (cmp(pta, &key) > 0);
+
+			*end = key;
+		}
+	}
+}
+
+void FUNC(tail_swap)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 {
 	VAR *pta, *end, *ptt, tmp;
-	unsigned char i, top;
 
 	switch (nmemb)
 	{
@@ -72,40 +112,7 @@ void FUNC(tail_swap)(VAR *array, unsigned char nmemb, CMPFUNC *cmp)
 	swap_four(array, tmp);
 	swap_eight(array, pta, ptt, end, tmp, cmp);
 
-	for (i = 8 ; i < nmemb ; i++)
-	{
-		pta = end = array + i;
-
-		if (cmp(--pta, end) <= 0)
-		{
-			continue;
-		}
-
-		tmp = *end;
-
-		if (cmp(array, &tmp) > 0)
-		{
-			top = i;
-
-			do
-			{
-				*end-- = *pta--;
-			}
-			while (--top);
-
-			*end = tmp;
-		}
-		else
-		{
-			do
-			{
-				*end-- = *pta--;
-			}
-			while (cmp(pta, &tmp) > 0);
-
-			*end = tmp;
-		}
-	}
+	FUNC(unguarded_insert)(array, 8, nmemb, cmp);
 }
 
 void FUNC(tail_merge)(VAR *array, VAR *swap, unsigned int nmemb, unsigned int block, CMPFUNC *cmp);

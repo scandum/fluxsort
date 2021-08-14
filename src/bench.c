@@ -44,16 +44,15 @@
 #include "quadsort.h"
 #include "fluxsort.h"
 
-//#define cmp(a,b) (*(a) > *(b))
+// uncomment for fast primitive comparisons
+
+// #define cmp(a,b) (*(a) > *(b))
 
 //typedef int CMPFUNC (const void *a, const void *b);
 
 typedef void SRTFUNC(void *array, size_t nmemb, size_t size, CMPFUNC *cmpf);
 
-
 // Must prevent inlining so the benchmark is fair against qsort.
-
-// Remove __attribute__ ((noinline)) and comparisons++ for full throttle.
 
 size_t comparisons;
 
@@ -116,6 +115,8 @@ __attribute__ ((noinline)) int cmp_long_double(const void * a, const void * b)
 
 int cmp_str(const void * a, const void * b)
 {
+	comparisons++;
+
 	return strcmp(*(const char **) a, *(const char **) b);
 }
 
@@ -146,10 +147,11 @@ void test_sort(void *array, void *unsorted, void *valid, int minimum, int maximu
 	long long *ptla = (long long *) array, *ptlv = valid;
 	long double *ptda = (long double *) array, *ptdv = valid;
 	int *pta = (int *) array, *ptv = (int *) valid, cnt;
+	char **ptsa = (char **) array;
 
 	if (*name == '*')
 	{
-		if (!strcmp(desc, "random order") || !strcmp(desc, "random 1-4") || !strcmp(desc, "random 4"))
+		if (!strcmp(desc, "random order") || !strcmp(desc, "random 1-4") || !strcmp(desc, "random 4") || !strcmp(desc, "random string"))
 		{
 			if (comparisons)
 			{
@@ -295,7 +297,15 @@ void test_sort(void *array, void *unsorted, void *valid, int minimum, int maximu
 
 	for (cnt = 1 ; cnt < maximum ; cnt++)
 	{
-		if (size == sizeof(int))
+		if (cmpf == cmp_str)
+		{
+			if (strcmp(ptsa[cnt - 1], ptsa[cnt]) > 0)
+			{
+				printf("%17s: not properly sorted at index %d. (%s vs %s\n", name, cnt, ptsa[cnt - 1], ptsa[cnt]);
+				break;
+			}
+		}
+		else if (size == sizeof(int))
 		{
 			if (pta[cnt - 1] > pta[cnt])
 			{
@@ -517,7 +527,7 @@ int main(int argc, char **argv)
 	long long *la_array, *lr_array, *lv_array;
 	long double *da_array, *dr_array, *dv_array;
 
-	char dist[40], *sorts[] = { "*", "qsort", "fluxsort" };
+	char dist[40], *sorts[] = { "*", "qsort", "fluxsort", "quadsort" };
 
 	if (argc >= 1 && argv[1] && *argv[1])
 	{
@@ -553,6 +563,41 @@ int main(int argc, char **argv)
 	}
 
 	mem = max * repetitions;
+
+	// C string
+
+	if (repetitions == 1)
+	{
+		char **sa_array = (char **) malloc(max * sizeof(char *));
+		char **sr_array = (char **) malloc(max * sizeof(char *));
+		char **sv_array = (char **) malloc(max * sizeof(char *));
+
+		char *buffer = (char *) malloc(max * 16);
+
+		seed_rand(rnd);
+
+		for (cnt = 0 ; cnt < max ; cnt++)
+		{
+			sprintf(buffer + cnt * 16, "%X", rand());
+
+			sr_array[cnt] = buffer + cnt * 16;
+		}
+
+		memcpy(sv_array, sr_array, max * sizeof(char *));
+		quadsort(sv_array, max, sizeof(char *), cmp_str);
+
+		for (cnt = 0 ; cnt < sizeof(sorts) / sizeof(char *) ; cnt++)
+		{
+			  test_sort(sa_array, sr_array, sv_array, max, max, samples, repetitions, qsort, sorts[cnt], "random string", sizeof(char *), cmp_str);
+		}
+
+		printf("\n");
+
+		free(sa_array);
+		free(sr_array);
+		free(sv_array);
+		free(buffer);
+	}
 
 	// 128 bit
 
@@ -646,6 +691,21 @@ int main(int argc, char **argv)
 		test_sort(a_array, r_array, v_array, max, max, samples, repetitions, qsort, sorts[cnt], "random order", sizeof(int), cmp_int);
 	}
 
+	// random % 100
+
+	for (cnt = 0 ; cnt < mem ; cnt++)
+	{
+		r_array[cnt] = rand() % 100;
+	}
+
+	memcpy(v_array, r_array, max * sizeof(int));
+	quadsort(v_array, max, sizeof(int), cmp_int);
+
+	for (cnt = 0 ; cnt < sizeof(sorts) / sizeof(char *) ; cnt++)
+	{
+		test_sort(a_array, r_array, v_array, max, max, samples, repetitions, qsort, sorts[cnt], "random % 100", sizeof(int), cmp_int);
+	}
+
 	// ascending
 
 	for (cnt = 0 ; cnt < mem ; cnt++)
@@ -688,11 +748,17 @@ int main(int argc, char **argv)
 		test_sort(a_array, r_array, v_array, max, max, samples, repetitions, qsort, sorts[cnt], "ascending saw", sizeof(int), cmp_int);
 	}
 
-	// generic
 
-	for (cnt = 0 ; cnt < mem ; cnt++)
+	// pipe organ
+
+	for (cnt = 0 ; cnt < max / 2 ; cnt++)
 	{
-		r_array[cnt] = rand() % 100;
+		r_array[cnt] = cnt;
+	}
+
+	for (cnt = max / 2 ; cnt < max ; cnt++)
+	{
+		r_array[cnt] = max - cnt;
 	}
 
 	memcpy(v_array, r_array, max * sizeof(int));
@@ -700,7 +766,7 @@ int main(int argc, char **argv)
 
 	for (cnt = 0 ; cnt < sizeof(sorts) / sizeof(char *) ; cnt++)
 	{
-		test_sort(a_array, r_array, v_array, max, max, samples, repetitions, qsort, sorts[cnt], "generic order", sizeof(int), cmp_int);
+		test_sort(a_array, r_array, v_array, max, max, samples, repetitions, qsort, sorts[cnt], "pipe organ", sizeof(int), cmp_int);
 	}
 
 	// descending
