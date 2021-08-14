@@ -16,9 +16,9 @@ Recursively partitioning through both swap and main memory is accomplished throu
 
 Worst case handling
 -------------------
-To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the chance of a false positive is 1 in 65,536 for the pseudomedian of 9 and 1 in 68,719,476,736 for the pseudomedian of 25.
+To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the observed chance of a false positive is 1 in 1,336 for the pseudomedian of 9 and approximately 1 in 4 million for the pseudomedian of 25.
 
-Combined with the analyzer fluxsort starts out with this makes the existence of killer patterns unlikely, other than a 2x performance slowdown by triggering the use of quadsort prematurely.
+Combined with the analyzer fluxsort starts out with this makes the existence of killer patterns unlikely, other than a 2x performance slowdown by prematurely triggering the use of quadsort on random data.
 
 Branchless optimizations
 ------------------------
