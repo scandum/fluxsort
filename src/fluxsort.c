@@ -220,7 +220,7 @@ void FUNC(flux_reverse_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *ptp, siz
 	}
 	memcpy(array + a_size, swap, s_size * sizeof(VAR));
 
-	if (a_size <= FLUX_OUT)
+	if (s_size <= a_size / 16 || a_size <= FLUX_OUT)
 	{
 		return FUNC(quadsort_swap)(array, swap, a_size, cmp);
 	}
@@ -298,12 +298,9 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *ptp, size_t nmem
 
 	if (s_size <= a_size / 16 || a_size <= FLUX_OUT)
 	{
-		FUNC(quadsort_swap)(array, swap, a_size, cmp);
+		return FUNC(quadsort_swap)(array, swap, a_size, cmp);
 	}
-	else
-	{
-		FUNC(flux_partition)(array, swap, array, ptp, a_size, cmp);
-	}
+	FUNC(flux_partition)(array, swap, array, ptp, a_size, cmp);
 }
 
 void FUNC(fluxsort)(VAR *array, size_t nmemb, CMPFUNC *cmp)
