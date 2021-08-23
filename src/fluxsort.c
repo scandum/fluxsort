@@ -91,7 +91,7 @@ size_t FUNC(flux_analyze)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 	return 0;
 }
 
-void FUNC(fluxsort)(VAR *array, size_t nmemb, CMPFUNC *cmp);
+void FUNC(fluxsort_swap)(VAR *array, VAR *swap, size_t nmemb, CMPFUNC *cmp);
 
 size_t FUNC(median_of_sqrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
 {
@@ -112,7 +112,7 @@ size_t FUNC(median_of_sqrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFU
 
 		pta += div;
 	}
-	FUNC(fluxsort)(pts, sqrt, cmp);
+	FUNC(fluxsort_swap)(pts, pts + sqrt, sqrt, cmp);
 
 	return pts[sqrt / 2];
 }
