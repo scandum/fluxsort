@@ -93,7 +93,7 @@ size_t FUNC(flux_analyze)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 
 void FUNC(fluxsort_swap)(VAR *array, VAR *swap, size_t nmemb, CMPFUNC *cmp);
 
-size_t FUNC(median_of_sqrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
+VAR FUNC(median_of_sqrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
 {
 	VAR *pta, *pts;
 	size_t cnt, sqrt, div;
