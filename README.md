@@ -40,6 +40,8 @@ Memory
 ------
 Fluxsort allocates n elements of swap memory, which is shared with quadsort. Recursion requires log n stack memory.
 
+If memory allocation fails fluxsort defaults to quadsort, which requires n / 4 elements of swap memory. If allocation fails again quadsort will sort in-place through rotations.
+
 Data Types
 ----------
 The C implementation of fluxsort supports long doubles and 8, 16, 32, and 64 bit data types. By using pointers it's possible to sort any other data type, like strings.
