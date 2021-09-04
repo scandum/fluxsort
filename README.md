@@ -182,3 +182,49 @@ The source code was compiled using gcc -O3 bench.c. The bar graph shows the best
 |  fluxsort |   100000 |   32 | 0.003334 | 0.003350 |   1361302 |     100 |  ascending tiles |
 
 </details>
+
+The following benchmark was on WSL gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04) using the [wolfsort](https://github.com/scandum/wolfsort) benchmark.
+The source code was compiled using g++ -O3 -w -fpermissive bench.c. The bar graph shows the best run out of 100 on 100,000 32 bit integers. Comparisons for fluxsort and pdqsort are inlined.
+
+![fluxsort vs pdqsort](https://github.com/scandum/fluxsort/blob/main/images/fluxsort_vs_pdqsort.png)
+
+<details><summary>data table</summary>
+
+|      Name |    Items | Type |     Best |  Average |     Loops | Samples |     Distribution |
+| --------- | -------- | ---- | -------- | -------- | --------- | ------- | ---------------- |
+|  fluxsort |   100000 |   64 | 0.002261 | 0.002282 |         1 |     100 |     random order |
+|   pdqsort |   100000 |   64 | 0.002670 | 0.002687 |         1 |     100 |     random order |
+
+|      Name |    Items | Type |     Best |  Average |     Loops | Samples |     Distribution |
+| --------- | -------- | ---- | -------- | -------- | --------- | ------- | ---------------- |
+|  fluxsort |   100000 |   32 | 0.002126 | 0.002145 |         1 |     100 |     random order |
+|   pdqsort |   100000 |   32 | 0.002585 | 0.002604 |         1 |     100 |     random order |
+|           |          |      |          |          |           |         |                  |
+|  fluxsort |   100000 |   32 | 0.000485 | 0.000493 |         1 |     100 |     random % 100 |
+|   pdqsort |   100000 |   32 | 0.000486 | 0.000494 |         1 |     100 |     random % 100 |
+|           |          |      |          |          |           |         |                  |
+|  fluxsort |   100000 |   32 | 0.000047 | 0.000047 |         1 |     100 |        ascending |
+|   pdqsort |   100000 |   32 | 0.000084 | 0.000085 |         1 |     100 |        ascending |
+|           |          |      |          |          |           |         |                  |
+|  fluxsort |   100000 |   32 | 0.000854 | 0.000864 |         1 |     100 |    ascending saw |
+|   pdqsort |   100000 |   32 | 0.003305 | 0.003317 |         1 |     100 |    ascending saw |
+|           |          |      |          |          |           |         |                  |
+|  fluxsort |   100000 |   32 | 0.000211 | 0.000213 |         1 |     100 |       pipe organ |
+|   pdqsort |   100000 |   32 | 0.002788 | 0.002803 |         1 |     100 |       pipe organ |
+|           |          |      |          |          |           |         |                  |
+|  fluxsort |   100000 |   32 | 0.000057 | 0.000058 |         1 |     100 |       descending |
+|   pdqsort |   100000 |   32 | 0.000187 | 0.000188 |         1 |     100 |       descending |
+|           |          |      |          |          |           |         |                  |
+|  fluxsort |   100000 |   32 | 0.000388 | 0.000408 |         1 |     100 |   descending saw |
+|   pdqsort |   100000 |   32 | 0.002326 | 0.002350 |         1 |     100 |   descending saw |
+|           |          |      |          |          |           |         |                  |
+|  fluxsort |   100000 |   32 | 0.001432 | 0.001444 |         1 |     100 |      random tail |
+|   pdqsort |   100000 |   32 | 0.002526 | 0.002540 |         1 |     100 |      random tail |
+|           |          |      |          |          |           |         |                  |
+|  fluxsort |   100000 |   32 | 0.001821 | 0.001833 |         1 |     100 |      random half |
+|   pdqsort |   100000 |   32 | 0.002560 | 0.002575 |         1 |     100 |      random half |
+|           |          |      |          |          |           |         |                  |
+|  fluxsort |   100000 |   32 | 0.000921 | 0.000934 |         1 |     100 |  ascending tiles |
+|   pdqsort |   100000 |   32 | 0.002260 | 0.002279 |         1 |     100 |  ascending tiles |
+
+</details>
