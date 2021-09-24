@@ -224,21 +224,17 @@ void FUNC(flux_reverse_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, siz
 
 size_t FUNC(flux_default_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmemb, CMPFUNC *cmp)
 {
-	size_t cnt, val, m;
+	size_t cnt, val, m = 0;
 
-	for (m = 0, cnt = nmemb / 8 ; cnt ; cnt--)
+	for (cnt = nmemb / 4 ; cnt ; cnt--)
 	{
-		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
-		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
-		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
-		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
 		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
 		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
 		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
 		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
 	}
 
-	for (cnt = nmemb % 8 ; cnt ; cnt--)
+	for (cnt = nmemb % 4 ; cnt ; cnt--)
 	{
 		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
 	}
@@ -253,7 +249,7 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmem
 	{
 		--piv;
 
-		if (nmemb <= 1024)
+		if (nmemb <= 2048)
 		{
 			*piv = FUNC(median_of_nine)(ptx, nmemb, cmp);
 		}
