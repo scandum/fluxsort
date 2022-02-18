@@ -45,7 +45,6 @@
 #include "fluxsort.h"
 
 // uncomment for fast primitive comparisons
-
 // #define cmp(a,b) (*(a) > *(b))
 
 //typedef int CMPFUNC (const void *a, const void *b);
@@ -714,8 +713,6 @@ int main(int argc, char **argv)
 	}
 
 	memcpy(v_array, r_array, max * sizeof(int));
-	memcpy(r_array, v_array, max * sizeof(int));
-
 	quadsort(v_array, max, sizeof(int), cmp_int);
 
 	for (cnt = 0 ; cnt < sizeof(sorts) / sizeof(char *) ; cnt++)
@@ -727,10 +724,9 @@ int main(int argc, char **argv)
 
 	for (cnt = 0 ; cnt < max ; cnt++)
 	{
-		r_array[cnt] = rand();
+		v_array[cnt] = rand();
 	}
 
-	memcpy(v_array, r_array, max * sizeof(int));
 	quadsort(v_array + max / 4 * 0, max / 4, sizeof(int), cmp_int);
 	quadsort(v_array + max / 4 * 1, max / 4, sizeof(int), cmp_int);
 	quadsort(v_array + max / 4 * 2, max / 4, sizeof(int), cmp_int);
@@ -753,15 +749,19 @@ int main(int argc, char **argv)
 
 	for (cnt = 0 ; cnt < max / 2 ; cnt++)
 	{
-		r_array[cnt] = cnt;
+		v_array[cnt] = cnt;
 	}
 
 	for (cnt = max / 2 ; cnt < max ; cnt++)
 	{
-		r_array[cnt] = max - cnt;
+		v_array[cnt] = max - cnt;
 	}
 
-	memcpy(v_array, r_array, max * sizeof(int));
+	for (rep = 0 ; rep < repetitions ; rep++)
+	{
+		memcpy(r_array + rep * max, v_array, max * sizeof(int));
+	}
+
 	quadsort(v_array, max, sizeof(int), cmp_int);
 
 	for (cnt = 0 ; cnt < sizeof(sorts) / sizeof(char *) ; cnt++)
@@ -788,10 +788,9 @@ int main(int argc, char **argv)
 
 	for (cnt = 0 ; cnt < max ; cnt++)
 	{
-		r_array[cnt] = rand();
+		v_array[cnt] = rand();
 	}
 
-	memcpy(v_array, r_array, max * sizeof(int));
 	quadsort(v_array + max / 4 * 0, max / 4, sizeof(int), cmp_rev);
 	quadsort(v_array + max / 4 * 1, max / 4, sizeof(int), cmp_rev);
 	quadsort(v_array + max / 4 * 2, max / 4, sizeof(int), cmp_rev);
@@ -811,17 +810,17 @@ int main(int argc, char **argv)
 
 	// random tail
 
-	seed_rand(rnd);
-
 	for (cnt = 0 ; cnt < max ; cnt++)
 	{
-		r_array[cnt] = rand();
+		v_array[cnt] = rand();
 	}
-
-	memcpy(v_array, r_array, max * sizeof(int));
 	quadsort(v_array, max * 3 / 4, sizeof(int), cmp_int);
 
-	memcpy(r_array, v_array, max * sizeof(int));
+	for (rep = 0 ; rep < repetitions ; rep++)
+	{
+		memcpy(r_array + rep * max, v_array, max * sizeof(int));
+	}
+
 	quadsort(v_array, max, sizeof(int), cmp_int);
 
 	for (cnt = 0 ; cnt < sizeof(sorts) / sizeof(char *) ; cnt++)
@@ -829,14 +828,12 @@ int main(int argc, char **argv)
 		test_sort(a_array, r_array, v_array, max, max, samples, repetitions, qsort, sorts[cnt], "random tail", sizeof(int), cmp_int);
 	}
 
-	seed_rand(rnd);
+	// random half
 
 	for (cnt = 0 ; cnt < max ; cnt++)
 	{
-		r_array[cnt] = rand();
+		v_array[cnt] = rand();
 	}
-
-	memcpy(v_array, r_array, max * sizeof(int));
 	quadsort(v_array, max / 2, sizeof(int), cmp_int);
 
 	for (rep = 0 ; rep < repetitions ; rep++)

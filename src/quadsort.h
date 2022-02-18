@@ -24,7 +24,7 @@
 */
 
 /*
-	quadsort 1.1.4.4
+	quadsort 1.1.5.1
 */
 
 #ifndef QUADSORT_H
@@ -37,8 +37,7 @@
 
 typedef int CMPFUNC (const void *a, const void *b);
 
-// uncomment for fast primitive comparisons
-// #define cmp(a,b) (*(a) > *(b))
+//#define cmp(a,b) (*(a) > *(b))
 
 #define parity_merge_two(array, swap, x, y, ptl, ptr, pts, cmp)  \
 {  \
