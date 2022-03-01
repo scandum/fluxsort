@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2014-2021 Igor van den Hoven ivdhoven@gmail.com
+	Copyright (C) 2014-2022 Igor van den Hoven ivdhoven@gmail.com
 */
 
 /*
@@ -24,11 +24,15 @@
 */
 
 /*
-	fluxsort 1.1.4.3
+	fluxsort 1.1.5.2
 */
 
 #ifndef FLUXSORT_H
 #define FLUXSORT_H
+
+#ifndef QUADSORT_H
+  #include "quadsort.h"
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>

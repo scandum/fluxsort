@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2014-2021 Igor van den Hoven ivdhoven@gmail.com
+	Copyright (C) 2014-2022 Igor van den Hoven ivdhoven@gmail.com
 */
 
 /*
@@ -32,7 +32,7 @@
 void FUNC(unguarded_insert)(VAR *array, size_t offset, size_t nmemb, CMPFUNC *cmp)
 {
 	VAR key, *pta, *end;
-	size_t i, top;
+	size_t i, top, x, y;
 
 	for (i = offset ; i < nmemb ; i++)
 	{
@@ -45,9 +45,9 @@ void FUNC(unguarded_insert)(VAR *array, size_t offset, size_t nmemb, CMPFUNC *cm
 
 		key = *end;
 
-		if (cmp(array, &key) > 0)
+		if (cmp(array + 1, &key) > 0)
 		{
-			top = i;
+			top = i - 1;
 
 			do
 			{
@@ -55,18 +55,21 @@ void FUNC(unguarded_insert)(VAR *array, size_t offset, size_t nmemb, CMPFUNC *cm
 			}
 			while (--top);
 
-			*end = key;
+			*end-- = key;
 		}
 		else
 		{
 			do
 			{
 				*end-- = *pta--;
+				*end-- = *pta--;
 			}
 			while (cmp(pta, &key) > 0);
 
-			*end = key;
+			end[0] = end[1];
+			end[1] = key;
 		}
+		x = cmp(end, end + 1) > 0; y = !x; key = end[y]; end[0] = end[x]; end[1] = key;
 	}
 }
 
