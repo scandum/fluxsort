@@ -30,7 +30,25 @@ These optimizations do not work as well when the comparisons themselves are bran
 
 Generic data optimizations
 --------------------------
-Fluxsort uses a method popularized by [pdqsort](https://github.com/orlp/pdqsort) to improve generic data handling. If the same pivot is chosen twice in a row it performs a reverse partition, filtering out all elements equal to the pivot, next it carries on as usual. This typically only occurs when sorting tables with many repeating values, like gender, education level, birthyear, zipcode, etc.
+Fluxsort uses a method popularized by [pdqsort](https://github.com/orlp/pdqsort) to improve generic data handling. If the same pivot is chosen twice in a row it performs a reverse partition, filtering out all elements equal to the pivot, next it carries on as usual. In addition, if after a partition all elements were smaller or equal to the pivot, a reverse partition is performed. This typically only occurs when sorting tables with many repeating values, like gender, education level, birthyear, zipcode, etc.
+
+```
+┌──────────────────────────────────┬───┬──────────────┐
+│             E <= P               │ P │    E > P     | default partition
+└──────────────────────────────────┴───┴──────────────┘
+
+┌──────────────┬───┬───────────────────┐
+│    P > E     │ P │    P <= E         |                reverse partition
+└──────────────┴───┴───────────────────┘
+
+┌──────────────┬───┬───────────────┬───┬──────────────┐
+│    E < P     │ P │    E == P     │ P │     E > P    | 
+└──────────────┴───┴───────────────┴───┴──────────────┘
+```
+
+Adaptive partitioning
+---------------------
+Fluxsort performs low cost run detection while it partitions and switches to quadsort if a long run is detected. While the run detection is not fully robust it can result in significant performance gains at a neglible cost.
 
 Large array optimizations
 -------------------------
@@ -52,7 +70,7 @@ Fluxsort uses the same interface as qsort, which is described in [man qsort](htt
 
 Big O
 -----
-```cobol
+```
                  ┌───────────────────────┐┌───────────────────────┐
                  │comparisons            ││swap memory            │
 ┌───────────────┐├───────┬───────┬───────┤├───────┬───────┬───────┤┌──────┐┌─────────┐┌─────────┐
