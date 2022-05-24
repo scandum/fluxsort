@@ -44,43 +44,45 @@
 
 //#define cmp(a,b) (*(a) > *(b)) // uncomment for fast primitive comparisons
 
+#define SORTS "*", "qsort", "fluxsort"
+
 #if __has_include("blitsort.h")
-  #include "blitsort.h"
+  #include "blitsort.h" // curl "https://raw.githubusercontent.com/scandum/blitsort/master/src/blitsort.{c,h}" -o "blitsort.#1"
 #endif
 #if __has_include("crumsort.h")
-  #include "crumsort.h"
+  #include "crumsort.h" // curl "https://raw.githubusercontent.com/scandum/crumsort/master/src/crumsort.{c,h}" -o "crumsort.#1"
 #endif
 #if __has_include("flowsort.h")
   #include "flowsort.h"
 #endif
 #if __has_include("fluxsort.h")
-  #include "fluxsort.h"
+  #include "fluxsort.h" // curl "https://raw.githubusercontent.com/scandum/fluxsort/master/src/fluxsort.{c,h}" -o "fluxsort.#1"
 #endif
 #if __has_include("gridsort.h")
-  #include "gridsort.h"
+  #include "gridsort.h" // curl "https://raw.githubusercontent.com/scandum/gridsort/master/src/gridsort.{c,h}" -o "gridsort.#1"
 #endif
 #if __has_include("quadsort.h")
-  #include "quadsort.h"
+  #include "quadsort.h" // curl "https://raw.githubusercontent.com/scandum/quadsort/master/src/quadsort.{c,h}" -o "quadsort.#1"
 #endif
 #if __has_include("wolfsort.h")
-  #include "wolfsort.h"
+  #include "wolfsort.h" // curl "https://raw.githubusercontent.com/scandum/wolfsort/master/src/wolfsort.{c,h}" -o "wolfsort.#1"
 #endif
 
 #ifdef __GNUG__
   #include <algorithm>
   #if __has_include("pdqsort.h")
-    #include "pdqsort.h" // https://github.com/orlp/pdqsort/blob/master/pdqsort.h
+    #include "pdqsort.h" // curl https://raw.githubusercontent.com/orlp/pdqsort/master/pdqsort.h > pdqsort.h
   #endif
   #if __has_include("rhsort.c")
     #define RHSORT_C
-    #include "rhsort.c" // https://github.com/mlochbaum/rhsort/blob/master/rhsort.c
+    #include "rhsort.c" // curl https://raw.githubusercontent.com/mlochbaum/rhsort/master/rhsort.c > rhsort.c
   #endif
   #if __has_include("ska_sort.hpp")
     #define SKASORT_HPP
-    #include "ska_sort.hpp" // https://github.com/skarupke/ska_sort/blob/master/ska_sort.hpp
+    #include "ska_sort.hpp" // curl https://raw.githubusercontent.com/skarupke/ska_sort/master/ska_sort.hpp > ska_sort.hpp
   #endif
   #if __has_include("timsort.hpp")
-    #include "timsort.hpp" // https://github.com/timsort/cpp-TimSort/blob/master/include/gfx/timsort.hpp
+    #include "timsort.hpp" // curl https://raw.githubusercontent.com/timsort/cpp-TimSort/master/include/gfx/timsort.hpp > timsort.hpp
   #endif
 #endif
 
@@ -101,13 +103,15 @@ size_t comparisons;
 
 __attribute__ ((noinline)) int cmp_int(const void * a, const void * b)
 {
-	const int l = *(const int *)a;
-	const int r = *(const int *)b;
+//	const int l = *(const int *)a;
+//	const int r = *(const int *)b;
 
 	comparisons++;
 
+	return *(int *) a - *(int *) b;
 //	return (l > r) - (l < r);
-	return l - r;
+//	return l > r;
+//	return l - r;
 }
 
 __attribute__ ((noinline)) int cmp_rev(const void * a, const void * b)
@@ -195,6 +199,9 @@ void test_sort(void *array, void *unsorted, void *valid, int minimum, int maximu
 	long double *ptda = (long double *) array, *ptdv = valid;
 	int *pta = (int *) array, *ptv = (int *) valid, cnt, rep, name32;
 	char **ptsa = (char **) array, **ptsv = (char **) valid;
+#ifdef SKASORT_HPP
+	void *swap;
+#endif
 
 	if (*name == '*')
 	{
@@ -241,7 +248,7 @@ void test_sort(void *array, void *unsorted, void *valid, int minimum, int maximu
 
 			comparisons = 0;
 
-			// edit *sorts[] in main() to add / remove sorts
+			// edit #define SORTS to add / remove sorts
 
 			switch (name32)
 			{
@@ -280,7 +287,7 @@ void test_sort(void *array, void *unsorted, void *valid, int minimum, int maximu
 				case 'r' + 'h' * 32 + 's' * 1024: if (size == sizeof(int)) rhsort32(pta, pta + max); else return; break;
   #endif
   #ifdef SKASORT_HPP
-				case 's' + 'k' * 32 + 'a' * 1024: void *swap = malloc(max * size); if (size == sizeof(int)) ska_sort_copy(pta, pta + max, (int *) swap); else if (size == sizeof(long long)) ska_sort_copy(ptla, ptla + max, (long long *) swap); else return; free(swap); break;
+				case 's' + 'k' * 32 + 'a' * 1024: swap = malloc(max * size); if (size == sizeof(int)) ska_sort_copy(pta, pta + max, (int *) swap); else if (size == sizeof(long long)) ska_sort_copy(ptla, ptla + max, (long long *) swap); else repetitions = 0; free(swap); break;
   #endif
   #ifdef GFX_TIMSORT_HPP
 				case 't' + 'i' * 32 + 'm' * 1024: if (size == sizeof(int)) gfx::timsort(pta, pta + max); else if (size == sizeof(long long)) gfx::timsort(ptla, ptla + max); else gfx::timsort(ptda, ptda + max); break;
@@ -604,10 +611,9 @@ int main(int argc, char **argv)
 	int cnt, rnd, lst, rep;
 	size_t mem;
 	int *a_array, *r_array, *v_array;
-	long long *la_array, *lr_array, *lv_array;
-	long double *da_array, *dr_array, *dv_array;
 
-	char dist[40], *sorts[] = { "*", "qsort", "fluxsort", "quadsort" };
+	char dist[40], *sorts[] = { SORTS };
+//	char dist[40], *sorts[] = { "*", "qsort", "quadsort" };
 
 	if (argc >= 1 && argv[1] && *argv[1])
 	{
@@ -646,7 +652,7 @@ int main(int argc, char **argv)
 
 	// C string
 
-#ifndef SKIPSTRINGS
+#ifndef SKIP_STRINGS
 #ifndef cmp
 	if (repetitions == 1)
 	{
@@ -685,9 +691,9 @@ int main(int argc, char **argv)
 	// 128 bit
 
 #ifndef SKIP_DOUBLES
-	da_array = (long double *) malloc(max * sizeof(long double));
-	dr_array = (long double *) malloc(mem * sizeof(long double));
-	dv_array = (long double *) malloc(max * sizeof(long double));
+	long double *da_array = (long double *) malloc(max * sizeof(long double));
+	long double *dr_array = (long double *) malloc(mem * sizeof(long double));
+	long double *dv_array = (long double *) malloc(max * sizeof(long double));
 
 	if (da_array == NULL || dr_array == NULL || dv_array == NULL)
 	{
@@ -722,9 +728,9 @@ int main(int argc, char **argv)
 	// 64 bit
 
 #ifndef SKIP_LONGS
-	la_array = (long long *) malloc(max * sizeof(long long));
-	lr_array = (long long *) malloc(mem * sizeof(long long));
-	lv_array = (long long *) malloc(max * sizeof(long long));
+	long long *la_array = (long long *) malloc(max * sizeof(long long));
+	long long *lr_array = (long long *) malloc(mem * sizeof(long long));
+	long long *lv_array = (long long *) malloc(max * sizeof(long long));
 
 	if (la_array == NULL || lr_array == NULL || lv_array == NULL)
 	{

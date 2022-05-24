@@ -29,60 +29,96 @@
 
 #define FLUX_OUT 24
 
+void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *ptp, size_t nmemb, CMPFUNC *cmp);
+
 // Determine whether to use mergesort or quicksort
 
-size_t FUNC(flux_analyze)(VAR *array, size_t nmemb, CMPFUNC *cmp)
+void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
 {
-	char loop, dist;
-	size_t cnt, balance = 0, streaks = 0;
-	VAR *pta, *ptb, swap;
+	char loop, asum, zsum;
+	size_t cnt, abalance = 0, zbalance = 0, astreaks = 0, zstreaks = 0;
+	VAR *pta, *ptz, tmp;
 
 	pta = array;
+	ptz = array + nmemb - 2;
 
-	for (cnt = nmemb ; cnt > 16 ; cnt -= 16)
+	for (cnt = nmemb ; cnt > 64 ; cnt -= 64)
 	{
-		for (dist = 0, loop = 16 ; loop ; loop--)
+		for (asum = zsum = 0, loop = 32 ; loop ; loop--)
 		{
-			dist += cmp(pta, pta + 1) > 0; pta++;
+			asum += cmp(pta, pta + 1) > 0; pta++;
+			zsum += cmp(ptz, ptz + 1) > 0; ptz--;
 		}
-		streaks += (dist == 0) | (dist == 16);
-		balance += dist;
+		astreaks += (asum == 0) | (asum == 32);
+		zstreaks += (zsum == 0) | (zsum == 32);
+		abalance += asum;
+		zbalance += zsum;
 	}
 
 	while (--cnt)
 	{
-		balance += cmp(pta, pta + 1) > 0;
-		pta++;
+		zbalance += cmp(ptz, ptz + 1) > 0; ptz--;
 	}
 
-	if (balance == 0)
+	if (abalance + zbalance == 0)
 	{
-		return 1;
+		return;
 	}
 
-	if (balance == nmemb - 1)
+	if (abalance + zbalance == nmemb - 1)
 	{
-		ptb = pta + 1;
+		ptz = array + nmemb;
 		pta = array;
 
 		cnt = nmemb / 2;
 
 		do
 		{
-			swap = *pta; *pta++ = *--ptb; *ptb = swap;
+			tmp = *pta; *pta++ = *--ptz; *ptz = tmp;
 		}
 		while (--cnt);
 
-		return 1;
+		return;
 	}
 
-	if (streaks >= nmemb / 40)
+	if (astreaks + zstreaks > nmemb / 40)
 	{
-		FUNC(quadsort)(array, nmemb, cmp);
-
-		return 1;
+		FUNC(quadsort_swap)(array, swap, swap_size, nmemb, cmp);
+		return;
 	}
-	return 0;
+
+	if (astreaks + zstreaks > nmemb / 80)
+	{
+		if (nmemb >= 512)
+		{
+			size_t block = pta - array;
+
+			if (astreaks < nmemb / 128)
+			{
+				FUNC(flux_partition)(array, swap, array, swap + block, block, cmp);
+			}
+			else if (abalance)
+			{
+				FUNC(quadsort_swap)(array, swap, swap_size, block, cmp);
+			}
+
+			if (zstreaks < nmemb / 128)
+			{
+				FUNC(flux_partition)(array + block, swap, array + block, swap + nmemb - block, nmemb - block, cmp);
+			}
+			else if (zbalance)
+			{
+				FUNC(quadsort_swap)(array + block, swap, swap_size, nmemb - block, cmp);
+			}
+			FUNC(blit_merge)(array, swap, swap_size, nmemb, block, cmp);
+		}
+		else
+		{
+			FUNC(quadsort_swap)(array, swap, swap_size, nmemb, cmp);
+		}
+		return;
+	}
+	FUNC(flux_partition)(array, swap, array, swap + nmemb, nmemb, cmp);
 }
 
 // The next 5 functions are used for pivot selection
@@ -173,8 +209,6 @@ VAR FUNC(median_of_nine)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 
 	return array[FUNC(median_of_three)(array, x, y, z, cmp)];
 }
-
-void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *ptp, size_t nmemb, CMPFUNC *cmp);
 
 // As per suggestion by Marshall Lochbaum to improve generic data handling
 
@@ -316,20 +350,20 @@ void FUNC(fluxsort)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 {
 	if (nmemb < 32)
 	{
-		return FUNC(tail_swap)(array, nmemb, cmp);
+		FUNC(tail_swap)(array, nmemb, cmp);
 	}
-	VAR *swap = malloc(nmemb * sizeof(VAR));
+	else
+	{
+		VAR *swap = malloc(nmemb * sizeof(VAR));
 
-	if (swap == NULL)
-	{
-		return FUNC(quadsort)(array, nmemb, cmp);
+		if (swap == NULL)
+		{
+			return FUNC(quadsort)(array, nmemb, cmp);
+		}
+		FUNC(flux_analyze)(array, swap, nmemb, nmemb, cmp);
+
+		free(swap);
 	}
-	
-	if (FUNC(flux_analyze)(array, nmemb, cmp) == 0)
-	{
-		FUNC(flux_partition)(array, swap, array, swap + nmemb, nmemb, cmp);
-	}
-	free(swap);
 }
 
 void FUNC(fluxsort_swap)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
@@ -342,8 +376,8 @@ void FUNC(fluxsort_swap)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, 
 	{
 		FUNC(quadsort_swap)(array, swap, swap_size, nmemb, cmp);
 	}
-	else if (FUNC(flux_analyze)(array, nmemb, cmp) == 0)
+	else
 	{
-		FUNC(flux_partition)(array, swap, array, swap + nmemb, nmemb, cmp);
+		FUNC(flux_analyze)(array, swap, swap_size, nmemb, cmp);
 	}
 }
