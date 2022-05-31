@@ -24,7 +24,7 @@
 */
 
 /*
-	fluxsort 1.1.5.2
+	fluxsort 1.1.5.3
 */
 
 #define FLUX_OUT 24
@@ -89,7 +89,7 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 
 	if (astreaks + zstreaks > nmemb / 80)
 	{
-		if (nmemb >= 512)
+		if (nmemb >= 1024)
 		{
 			size_t block = pta - array;
 
@@ -110,7 +110,7 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 			{
 				FUNC(quadsort_swap)(array + block, swap, swap_size, nmemb - block, cmp);
 			}
-			FUNC(blit_merge)(array, swap, swap_size, nmemb, block, cmp);
+			FUNC(partial_forward_merge)(array, swap, nmemb, block, cmp);
 		}
 		else
 		{

@@ -24,7 +24,7 @@
 */
 
 /*
-	quadsort 1.1.5.2
+	quadsort 1.1.5.3
 */
 
 // the next seven functions are used for sorting 0 to 31 elements
@@ -143,7 +143,7 @@ void FUNC(parity_merge)(VAR *dest, VAR *from, size_t block, size_t nmemb, CMPFUN
 	tpr = from + nmemb - 1;
 	tpd = dest + nmemb - 1;
 
-	for (block-- ; block ; block--)
+	while (--block)
 	{
 		x = cmp(ptl, ptr) <= 0; y = !x; ptd[x] = *ptr; ptr += y; ptd[y] = *ptl; ptl += x; ptd++;
 		x = cmp(tpl, tpr) <= 0; y = !x; tpd--; tpd[x] = *tpr; tpr -= x; tpd[y] = *tpl; tpl -= y;
@@ -667,8 +667,6 @@ void FUNC(tail_merge)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, siz
 
 	while (block < nmemb && block <= swap_size)
 	{
-		pta = array;
-
 		for (pta = array ; pta + block < pte ; pta += block * 2)
 		{
 			if (pta + block * 2 < pte)
@@ -846,36 +844,37 @@ size_t FUNC(monobound_binary_first)(VAR *array, VAR *value, size_t top, CMPFUNC 
 	return (end - array);
 }
 
-void FUNC(blit_merge_block)(VAR *array, VAR *swap, size_t swap_size, size_t block, size_t right, CMPFUNC *cmp)
+void FUNC(blit_merge_block)(VAR *array, VAR *swap, size_t swap_size, size_t lblock, size_t right, CMPFUNC *cmp)
 {
-	size_t left;
+	size_t left, rblock;
 
-	if (cmp(array + block - 1, array + block) <= 0)
+	if (cmp(array + lblock - 1, array + lblock) <= 0)
 	{
 		return;
 	}
 
-	left = FUNC(monobound_binary_first)(array + block, array + block / 2, right, cmp);
+	rblock = lblock / 2;
+	lblock -= rblock;
+
+	left = FUNC(monobound_binary_first)(array + lblock + rblock, array + lblock, right, cmp);
 
 	right -= left;
 
-	block /= 2;
-
 	if (left)
 	{
-		FUNC(trinity_rotation)(array + block, swap, swap_size, block + left, block);
+		FUNC(trinity_rotation)(array + lblock, swap, swap_size, rblock + left, rblock);
 
 		if (left <= swap_size)
 		{
-			FUNC(partial_backward_merge)(array, swap, block + left, block, cmp);
+			FUNC(partial_backward_merge)(array, swap, lblock + left, lblock, cmp);
 		}
-		else if (block <= swap_size)
+		else if (lblock <= swap_size)
 		{
-			FUNC(partial_forward_merge)(array, swap, block + left, block, cmp);
+			FUNC(partial_forward_merge)(array, swap, lblock + left, lblock, cmp);
 		}
 		else
 		{
-			FUNC(blit_merge_block)(array, swap, swap_size, block, left, cmp);
+			FUNC(blit_merge_block)(array, swap, swap_size, lblock, left, cmp);
 		}
 	}
 
@@ -883,15 +882,15 @@ void FUNC(blit_merge_block)(VAR *array, VAR *swap, size_t swap_size, size_t bloc
 	{
 		if (right <= swap_size)
 		{
-			FUNC(partial_backward_merge)(array + block + left, swap, block + right, block, cmp);
+			FUNC(partial_backward_merge)(array + lblock + left, swap, rblock + right, rblock, cmp);
 		}
-		else if (block <= swap_size)
+		else if (rblock <= swap_size)
 		{
-			FUNC(partial_forward_merge)(array + block + left, swap, block + right, block, cmp);
+			FUNC(partial_forward_merge)(array + lblock + left, swap, rblock + right, rblock, cmp);
 		}
 		else
 		{
-			FUNC(blit_merge_block)(array + block + left, swap, swap_size, block, right, cmp);
+			FUNC(blit_merge_block)(array + lblock + left, swap, swap_size, rblock, right, cmp);
 		}
 	}
 }
@@ -904,8 +903,6 @@ void FUNC(blit_merge)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, siz
 
 	while (block < nmemb)
 	{
-		pta = array;
-
 		for (pta = array ; pta + block < pte ; pta += block * 2)
 		{
 			if (pta + block * 2 < pte)
