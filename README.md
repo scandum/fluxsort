@@ -54,20 +54,6 @@ Large array optimizations
 -------------------------
 For partitions larger than 65536 elements fluxsort obtains the median of 128 or 256. It does so by copying 128 or 256 random elements to swap memory, sorting them with quadsort, and taking the center element. Using pseudomedian instead of median selection on large arrays is slower, likely due to cache pollution.
 
-Memory
-------
-Fluxsort allocates n elements of swap memory, which is shared with quadsort. Recursion requires log n stack memory.
-
-If memory allocation fails fluxsort defaults to quadsort, which requires n / 4 elements of swap memory. If allocation fails again quadsort will sort in-place through rotations.
-
-Data Types
-----------
-The C implementation of fluxsort supports long doubles and 8, 16, 32, and 64 bit data types. By using pointers it's possible to sort any other data type, like strings.
-
-Interface
----------
-Fluxsort uses the same interface as qsort, which is described in [man qsort](https://man7.org/linux/man-pages/man3/qsort.3p.html).
-
 Big O
 -----
 ```
@@ -85,6 +71,26 @@ Big O
 │pdqsort        ││n      │n log n│n log n││1      │1      │1      ││no    ││yes      ││semi     │
 └───────────────┘└───────┴───────┴───────┘└───────┴───────┴───────┘└──────┘└─────────┘└─────────┘
 ```
+
+Data Types
+----------
+The C implementation of fluxsort supports long doubles and 8, 16, 32, and 64 bit data types. By using pointers it's possible to sort any other data type, like strings.
+
+Interface
+---------
+Fluxsort uses the same interface as qsort, which is described in [man qsort](https://man7.org/linux/man-pages/man3/qsort.3p.html).
+
+Memory
+------
+Fluxsort allocates n elements of swap memory, which is shared with quadsort. Recursion requires log n stack memory.
+
+If memory allocation fails fluxsort defaults to quadsort, which requires n / 4 elements of swap memory. If allocation fails again quadsort will sort in-place through rotations.
+
+Performance
+-----------
+Fluxsort is the fastest stable comparison sort written to date.
+
+To take full advantage of branchless operations the `cmp` macro needs to be uncommented in bench.c, which will double the performance on primitive types.
 
 Porting
 -------
