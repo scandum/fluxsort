@@ -54,6 +54,10 @@ Large array optimizations
 -------------------------
 For partitions larger than 65536 elements fluxsort obtains the median of 128 or 256. It does so by copying 128 or 256 random elements to swap memory, sorting them with quadsort, and taking the center element. Using pseudomedian instead of median selection on large arrays is slower, likely due to cache pollution.
 
+Small array optimizations
+-------------------------
+For paritions smaller than 24 elements fluxsort uses quadsort's small array sorting routine. This routine uses branchless parity merges for the first 8 or 16 elements, and twice-unguarded insertion sort to sort the remainder. This gives a significant performance gain compared to the unguarded insertion sort used by most quicksorts.
+
 Big O
 -----
 ```
