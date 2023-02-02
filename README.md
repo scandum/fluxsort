@@ -106,7 +106,7 @@ Visualization
 -------------
 In the visualization below four tests are performed on 512 elements: Random, Generic, Random Half, and Ascending Tiles. Partitions greater than 48 elements use the pseudomedian of 15 to select the pivot.
 
-[![fluxsort visualization](https://github.com/scandum/fluxsort/blob/main/images/fluxsort.gif)](https://youtu.be/pXPrCTi-gRE)
+[![fluxsort visualization](/images/fluxsort.gif)](https://youtu.be/pXPrCTi-gRE)
 
 Benchmarks
 ----------
@@ -114,67 +114,111 @@ Benchmarks
 The following benchmark was on WSL gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04) using the [wolfsort](https://github.com/scandum/wolfsort) benchmark.
 The source code was compiled using g++ -O3 -w -fpermissive bench.c. The bar graph shows the best run out of 100 on 100,000 32 bit integers. Comparisons for timsort, fluxsort and std::stable_sort are inlined.
 
-![fluxsort vs stdstablesort](https://github.com/scandum/fluxsort/blob/main/images/fluxsort_vs_stdstablesort.png)
+![fluxsort vs stdstablesort](/images/fluxsort_vs_stdstablesort.png)
 
 <details><summary>data table</summary>
 
 |      Name |    Items | Type |     Best |  Average |  Compares | Samples |     Distribution |
 | --------- | -------- | ---- | -------- | -------- | --------- | ------- | ---------------- |
-|stablesort |   100000 |  128 | 0.010934 | 0.011043 |         0 |     100 |     random order |
-|  fluxsort |   100000 |  128 | 0.008522 | 0.008594 |         0 |     100 |     random order |
-|   timsort |   100000 |  128 | 0.012931 | 0.013013 |         0 |     100 |     random order |
+|stablesort |   100000 |  128 | 0.010946 | 0.011070 |         0 |     100 |     random order |
+|  fluxsort |   100000 |  128 | 0.008525 | 0.008616 |         0 |     100 |     random order |
+|   timsort |   100000 |  128 | 0.012787 | 0.012885 |         0 |     100 |     random order |
 
 |      Name |    Items | Type |     Best |  Average |  Compares | Samples |     Distribution |
 | --------- | -------- | ---- | -------- | -------- | --------- | ------- | ---------------- |
-|stablesort |   100000 |   64 | 0.006097 | 0.006133 |         0 |     100 |     random order |
-|  fluxsort |   100000 |   64 | 0.001935 | 0.001954 |         0 |     100 |     random order |
-|   timsort |   100000 |   64 | 0.007722 | 0.007768 |         0 |     100 |     random order |
+|stablesort |   100000 |   64 | 0.006119 | 0.006166 |         0 |     100 |     random order |
+|  fluxsort |   100000 |   64 | 0.001947 | 0.001974 |         0 |     100 |     random order |
+|   timsort |   100000 |   64 | 0.007788 | 0.007839 |         0 |     100 |     random order |
 
 |      Name |    Items | Type |     Best |  Average |     Loops | Samples |     Distribution |
 | --------- | -------- | ---- | -------- | -------- | --------- | ------- | ---------------- |
-|stablesort |   100000 |   32 | 0.006066 | 0.006097 |         0 |     100 |     random order |
-|  fluxsort |   100000 |   32 | 0.001840 | 0.001858 |         0 |     100 |     random order |
-|   timsort |   100000 |   32 | 0.007620 | 0.007651 |         0 |     100 |     random order |
+|stablesort |   100000 |   32 | 0.005996 | 0.006033 |         0 |     100 |     random order |
+|  fluxsort |   100000 |   32 | 0.001852 | 0.001872 |         0 |     100 |     random order |
+|   timsort |   100000 |   32 | 0.007584 | 0.007616 |         0 |     100 |     random order |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.003911 | 0.003933 |         0 |     100 |     random % 100 |
-|  fluxsort |   100000 |   32 | 0.000658 | 0.000671 |         0 |     100 |     random % 100 |
-|   timsort |   100000 |   32 | 0.005604 | 0.005629 |         0 |     100 |     random % 100 |
+|stablesort |   100000 |   32 | 0.003818 | 0.003845 |         0 |     100 |     random % 100 |
+|  fluxsort |   100000 |   32 | 0.000657 | 0.000668 |         0 |     100 |     random % 100 |
+|   timsort |   100000 |   32 | 0.005606 | 0.005644 |         0 |     100 |     random % 100 |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.000692 | 0.000725 |         0 |     100 |  ascending order |
-|  fluxsort |   100000 |   32 | 0.000044 | 0.000044 |         0 |     100 |  ascending order |
-|   timsort |   100000 |   32 | 0.000070 | 0.000070 |         0 |     100 |  ascending order |
+|stablesort |   100000 |   32 | 0.000670 | 0.000688 |         0 |     100 |  ascending order |
+|  fluxsort |   100000 |   32 | 0.000044 | 0.000045 |         0 |     100 |  ascending order |
+|   timsort |   100000 |   32 | 0.000045 | 0.000046 |         0 |     100 |  ascending order |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.001372 | 0.001386 |         0 |     100 |    ascending saw |
-|  fluxsort |   100000 |   32 | 0.000329 | 0.000334 |         0 |     100 |    ascending saw |
-|   timsort |   100000 |   32 | 0.000874 | 0.000882 |         0 |     100 |    ascending saw |
+|stablesort |   100000 |   32 | 0.001359 | 0.001389 |         0 |     100 |    ascending saw |
+|  fluxsort |   100000 |   32 | 0.000328 | 0.000331 |         0 |     100 |    ascending saw |
+|   timsort |   100000 |   32 | 0.000842 | 0.000853 |         0 |     100 |    ascending saw |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.000832 | 0.000838 |         0 |     100 |       pipe organ |
-|  fluxsort |   100000 |   32 | 0.000215 | 0.000217 |         0 |     100 |       pipe organ |
-|   timsort |   100000 |   32 | 0.000183 | 0.000183 |         0 |     100 |       pipe organ |
+|stablesort |   100000 |   32 | 0.001124 | 0.001152 |         0 |     100 |       pipe organ |
+|  fluxsort |   100000 |   32 | 0.000206 | 0.000207 |         0 |     100 |       pipe organ |
+|   timsort |   100000 |   32 | 0.000465 | 0.000472 |         0 |     100 |       pipe organ |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.000914 | 0.000929 |         0 |     100 | descending order |
+|stablesort |   100000 |   32 | 0.000905 | 0.000919 |         0 |     100 | descending order |
 |  fluxsort |   100000 |   32 | 0.000055 | 0.000055 |         0 |     100 | descending order |
-|   timsort |   100000 |   32 | 0.000088 | 0.000091 |         0 |     100 | descending order |
+|   timsort |   100000 |   32 | 0.000092 | 0.000093 |         0 |     100 | descending order |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.001376 | 0.001420 |         0 |     100 |   descending saw |
-|  fluxsort |   100000 |   32 | 0.000328 | 0.000330 |         0 |     100 |   descending saw |
-|   timsort |   100000 |   32 | 0.000874 | 0.000882 |         0 |     100 |   descending saw |
+|stablesort |   100000 |   32 | 0.001602 | 0.001618 |         0 |     100 |   descending saw |
+|  fluxsort |   100000 |   32 | 0.000418 | 0.000421 |         0 |     100 |   descending saw |
+|   timsort |   100000 |   32 | 0.000785 | 0.000797 |         0 |     100 |   descending saw |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.002064 | 0.002086 |         0 |     100 |      random tail |
-|  fluxsort |   100000 |   32 | 0.000626 | 0.000632 |         0 |     100 |      random tail |
-|   timsort |   100000 |   32 | 0.002024 | 0.002035 |         0 |     100 |      random tail |
+|stablesort |   100000 |   32 | 0.002030 | 0.002063 |         0 |     100 |      random tail |
+|  fluxsort |   100000 |   32 | 0.000627 | 0.000630 |         0 |     100 |      random tail |
+|   timsort |   100000 |   32 | 0.001992 | 0.002012 |         0 |     100 |      random tail |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.003547 | 0.003587 |         0 |     100 |      random half |
-|  fluxsort |   100000 |   32 | 0.001067 | 0.001073 |         0 |     100 |      random half |
-|   timsort |   100000 |   32 | 0.004046 | 0.004063 |         0 |     100 |      random half |
+|stablesort |   100000 |   32 | 0.003491 | 0.003531 |         0 |     100 |      random half |
+|  fluxsort |   100000 |   32 | 0.001080 | 0.001095 |         0 |     100 |      random half |
+|   timsort |   100000 |   32 | 0.004022 | 0.004040 |         0 |     100 |      random half |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.000972 | 0.000988 |         0 |     100 |  ascending tiles |
-|  fluxsort |   100000 |   32 | 0.000293 | 0.000295 |         0 |     100 |  ascending tiles |
-|   timsort |   100000 |   32 | 0.000885 | 0.000916 |         0 |     100 |  ascending tiles |
+|stablesort |   100000 |   32 | 0.000919 | 0.000942 |         0 |     100 |  ascending tiles |
+|  fluxsort |   100000 |   32 | 0.000294 | 0.000297 |         0 |     100 |  ascending tiles |
+|   timsort |   100000 |   32 | 0.000836 | 0.000878 |         0 |     100 |  ascending tiles |
 |           |          |      |          |          |           |         |                  |
-|stablesort |   100000 |   32 | 0.001522 | 0.001587 |         0 |     100 |     bit reversal |
-|  fluxsort |   100000 |   32 | 0.001694 | 0.001720 |         0 |     100 |     bit reversal |
-|   timsort |   100000 |   32 | 0.002240 | 0.002450 |         0 |     100 |     bit reversal |
+|stablesort |   100000 |   32 | 0.001172 | 0.001201 |         0 |     100 |     bit reversal |
+|  fluxsort |   100000 |   32 | 0.001717 | 0.001743 |         0 |     100 |     bit reversal |
+|   timsort |   100000 |   32 | 0.002240 | 0.002352 |         0 |     100 |     bit reversal |
+
+</details>
+
+The following benchmark was on WSL 2 gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)
+using the [wolfsort benchmark](https://github.com/scandum/wolfsort).
+The source code was compiled using `g++ -O3 -w -fpermissive bench.c`. It measures the performance
+on random data with array sizes ranging from 10 to 10,000,000. It's generated by running the benchmark
+using 10000000 0 0 as the argument. The benchmark is weighted, meaning the number of repetitions halves
+each time the number of items doubles. A table with the best and average time in seconds can be
+uncollapsed below the bar graph.
+
+![fluxsort vs stdstablesort](/images/fluxsort_vs_stdstablesort_2.png)
+
+<details><summary>data table</summary>
+
+|      Name |    Items | Type |     Best |  Average |  Compares | Samples |     Distribution |
+| --------- | -------- | ---- | -------- | -------- | --------- | ------- | ---------------- |
+|stablesort |       10 |   32 | 0.127779 | 0.128149 |       0.0 |      10 |        random 10 |
+|  fluxsort |       10 |   32 | 0.049679 | 0.049883 |       0.0 |      10 |        random 10 |
+|   timsort |       10 |   32 | 0.141079 | 0.144350 |       0.0 |      10 |        random 10 |
+|           |          |      |          |          |           |         |                  |
+|stablesort |      100 |   32 | 0.242744 | 0.243288 |       0.0 |      10 |       random 100 |
+|  fluxsort |      100 |   32 | 0.112359 | 0.113083 |       0.0 |      10 |       random 100 |
+|   timsort |      100 |   32 | 0.341105 | 0.341710 |       0.0 |      10 |       random 100 |
+|           |          |      |          |          |           |         |                  |
+|stablesort |     1000 |   32 | 0.362902 | 0.363586 |       0.0 |      10 |      random 1000 |
+|  fluxsort |     1000 |   32 | 0.137569 | 0.138066 |       0.0 |      10 |      random 1000 |
+|   timsort |     1000 |   32 | 0.493047 | 0.493622 |       0.0 |      10 |      random 1000 |
+|           |          |      |          |          |           |         |                  |
+|stablesort |    10000 |   32 | 0.476859 | 0.477168 |       0.0 |      10 |     random 10000 |
+|  fluxsort |    10000 |   32 | 0.160565 | 0.160774 |       0.0 |      10 |     random 10000 |
+|   timsort |    10000 |   32 | 0.637224 | 0.641950 |       0.0 |      10 |     random 10000 |
+|           |          |      |          |          |           |         |                  |
+|stablesort |   100000 |   32 | 0.602276 | 0.602838 |       0.0 |      10 |    random 100000 |
+|  fluxsort |   100000 |   32 | 0.187420 | 0.187915 |       0.0 |      10 |    random 100000 |
+|   timsort |   100000 |   32 | 0.762078 | 0.762648 |       0.0 |      10 |    random 100000 |
+|           |          |      |          |          |           |         |                  |
+|stablesort |  1000000 |   32 | 0.731715 | 0.734021 |       0.0 |      10 |   random 1000000 |
+|  fluxsort |  1000000 |   32 | 0.217196 | 0.219207 |       0.0 |      10 |   random 1000000 |
+|   timsort |  1000000 |   32 | 0.895532 | 0.896547 |       0.0 |      10 |   random 1000000 |
+|           |          |      |          |          |           |         |                  |
+|stablesort | 10000000 |   32 | 0.891028 | 0.895325 |         0 |      10 |  random 10000000 |
+|  fluxsort | 10000000 |   32 | 0.266910 | 0.269159 |         0 |      10 |  random 10000000 |
+|   timsort | 10000000 |   32 | 1.081709 | 1.089263 |         0 |      10 |  random 10000000 |
 
 </details>
 
