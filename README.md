@@ -124,7 +124,7 @@ Variants
 
 - [wolfsort](https://github.com/scandum/wolfsort) is a hybrid stable radixsort / fluxsort with improved performance on random data. It's mostly a proof of concept that only works on unsigned 32 bit integers.
 
-- [glidesort](https://github.com/orlp/glidesort) is a hybrid stable quicksort / timsort written in Rust. The timsort is enhanced with quadsort's branchless merge logic and powersort's optimization to run lengths. Partitioning is similar to fluxsort, except that it is bidirectional like a parity merge, writing to 2 instead of 4 memory regions. The merge routines increase from 2 to 4 through partitioning and conjoining quad merges. Reportedly, doing this gives a performance benefit on the most recent hardware, while decreasing performance on older hardware. Auxiliary memory use is reduced by up to `n / 8` for large arrays.
+- [glidesort](https://github.com/orlp/glidesort) is a hybrid stable quicksort / timsort written in Rust. The timsort is enhanced with quadsort's branchless merge logic and powersort's optimization to run lengths. Partitioning is similar to fluxsort, except that it is bidirectional like a parity merge, writing to 4 instead of 2 memory regions. Similarly, the memory regions of the merge routine are increase from 2 to 4 through partitioning and conjoining quad merges. Reportedly, doing this gives a performance benefit on the most recent hardware, while decreasing performance on older hardware. Auxiliary memory use is reduced by up to `n / 8` for large arrays.
 
 Visualization
 -------------
