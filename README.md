@@ -6,9 +6,13 @@ Analyzer
 --------
 Fluxsort starts out with an analyzer that detects fully sorted arrays and sorts reverse order arrays using n comparisons. It also splits the array in 4 segments and obtains a measure of presortedness for each segment, switching to [quadsort](https://github.com/scandum/quadsort) if the segment is more than 50% ordered.
 
+While arguably not as adaptive as the bottom-up analyzer used by quadsort, a top-down analyzer works well because quicksort significantly benefits from sorting longer ranges. This approach results in more robust overall adaptivity as fluxsort cannot be tricked into performing less efficient partitions by small sorted runs. In addition, the analyzer will execute what could be considered a true top-down merge on the 4 segments.
+
+Increasing the segments from 4 to 16 is challenging due to register pressure.
+
 Partitioning
 ------------
-Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the pseudomedian of 9 for partitions smaller than 2024 elements, the pseudomedian of 25 if the array is smaller than 65536, and the median of 128, 256, or 512 otherwise, depending on array size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 24 elements are sorted with quadsort.
+Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the pseudomedian of 9 for partitions smaller than 2024 elements, the pseudomedian of 25 if the array is smaller than 65536, and the median of 128, 256, or 512 otherwise, making the pivot selection an approximation of the cubic root of the partition size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 24 elements are sorted with quadsort.
 
 After obtaining a pivot the array is parsed from start to end. Elements smaller than the pivot are copied in-place to the start of the array, elements greater than the pivot are copied to swap memory. The partitioning routine is called recursively on the two partitions in main and swap memory.
 
@@ -18,7 +22,7 @@ Worst case handling
 -------------------
 To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the observed chance of a false positive is 1 in 1,336 for the pseudomedian of 9 and approximately 1 in 4 million for the pseudomedian of 25.
 
-Combined with the analyzer fluxsort starts out with this makes the existence of killer patterns unlikely, other than at most a 33% performance slowdown by prematurely triggering the use of quadsort.
+Combined with the analyzer fluxsort starts out with this makes the existence of killer patterns unlikely, other than at most a 33% performance slowdown by prematurely triggering the use of quadsort. However, for more complex comparisons, like strings, quadsort matches fluxsort, in which case it wouldn't make a difference.
 
 Branchless optimizations
 ------------------------
@@ -26,11 +30,15 @@ Fluxsort uses a branchless comparison optimization. The ability of quicksort to 
 
 Median selection uses a branchless comparison technique that selects the pseudomedian of 9 using 12 comparisons, and the pseudomedian of 25 using 42 comparisons.
 
-These optimizations do not work as well when the comparisons themselves are branched and the largest performance increase is on 32 and 64 bit integers.
+When sorting, branchless comparisons are primarily useful to take advantage of memory-level parallelism. After writing data, the process can continue without having to wait for the write operation to have actually finished, and the process will primarily stall when a cache line is fetched. Since quicksort partitions to two memory regions, part of the loop can continue, reducing the wait time for cache line fetches. This gives an overall performance gain, even though the branchless operation is more expensive.
+
+When the comparison becomes more expensive (like string comparisons), the size of the type is increased, the size of the partition is increased, or the comparison accesses uncached memory regions, the benefit of memory-level parallelism is reduced, and can even result in slower overall execution. While it's possible to write to four memory regions at once, the cost-benefit is dubious for a general purpose sort, and likely hardware dependant.
+
+Quadsort, as of September 2021, uses a branchless optimization as well, and writes to two distinct memory regions by merging both ends of an array simultaneously. For sorting strings and objects quadsort's overall branchless performance is better than fluxsort's with the exception that fluxsort is faster on random data with low cardinality.
 
 Generic data optimizations
 --------------------------
-Fluxsort uses a method similar to dual-pivot quicksort to improve generic data handling. If the same pivot is chosen twice in a row it performs a reverse partition, filtering out all elements equal to the pivot, next it carries on as usual. In addition, if after a partition all elements were smaller or equal to the pivot, a reverse partition is performed. This typically only occurs when sorting tables with many identical values, like gender, birthyear, etc.
+Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data handling. If the same pivot is chosen twice in a row it performs a reverse partition, filtering out all elements equal to the pivot, next it carries on as usual. In addition, if after a partition all elements were smaller or equal to the pivot, a reverse partition is performed. This typically only occurs when sorting tables with many identical values, like gender, birthyear, etc.
 
 ```
 ┌──────────────────────────────────┬───┬──────────────┐
@@ -56,7 +64,7 @@ For partitions larger than 65536 elements fluxsort obtains the median of 128 or 
 
 Small array optimizations
 -------------------------
-For paritions smaller than 24 elements fluxsort uses quadsort's small array sorting routine. This routine uses branchless parity merges for the first 8 or 16 elements, and twice-unguarded insertion sort to sort the remainder. This gives a significant performance gain compared to the unguarded insertion sort used by most quicksorts.
+For partitions smaller than 24 elements fluxsort uses quadsort's small array sorting routine. This routine uses branchless parity merges for the first 4 or 8 elements, and twice-unguarded insertion sort to sort the remainder. If the array exceeds 15 elements it is split in 4 segments and parity merged. This gives a significant performance gain compared to the unguarded insertion sort used by most quicksorts.
 
 Big O
 -----
@@ -84,7 +92,7 @@ Interface
 ---------
 Fluxsort uses the same interface as qsort, which is described in [man qsort](https://man7.org/linux/man-pages/man3/qsort.3p.html).
 
-Fluxsort comes with the fluxsort_prim(void *array, size_t nmemb, size_t size) function to perform primitive comparisons on arrays of 32 and 64 bit integers. Nmemb is the number of elements. Size should be either sizeof(int) or sizeof(long long) for signed integers, and sizeof(int) + 1 or sizeof(long long) + 1 for unsigned integers. 
+Fluxsort comes with the fluxsort_prim(void *array, size_t nmemb, size_t size) function to perform primitive comparisons on arrays of 32 and 64 bit integers. Nmemb is the number of elements. Size should be either sizeof(int) or sizeof(long long) for signed integers, and sizeof(int) + 1 or sizeof(long long) + 1 for unsigned integers. Support for additional primitive as well as custom types can be added to fluxsort.h and quadsort.h.
 
 Memory
 ------
@@ -92,15 +100,19 @@ Fluxsort allocates n elements of swap memory, which is shared with quadsort. Rec
 
 If memory allocation fails fluxsort defaults to quadsort, which requires n / 4 elements of swap memory. If allocation fails again quadsort will sort in-place through rotations.
 
+If in-place stable sorting is desired the best option is to use [blitsort](https://github.com/scandum/blitsort), which is a properly in-place alternative to fluxsort. For in-place unstable sorting [crumsort](https://github.com/scandum/blitsort) is an option as well.
+
 Performance
 -----------
-Fluxsort is one of the fastest stable comparison sort written to date.
+Fluxsort is one of the fastest stable comparison sorts written to date.
 
-To take full advantage of branchless operations the `cmp` macro needs to be uncommented in bench.c, which will double the performance on primitive types.
+To take full advantage of branchless operations the `cmp` macro can be uncommented in bench.c, which will double the performance on primitive types. Fluxsort, after crumsort, is faster than a radix sort for sorting 64 bit integers. An adaptive radix sort, like [wolfsort](https://github.com/scandum/wolfsort), has better performance on 8, 16, and 32 bit types.
+
+Fluxsort needs to be compiled using `gcc -O3` for optimal performance.
 
 Porting
 -------
-People wanting to port fluxsort might want to have a look at [piposort](https://github.com/scandum/piposort), which is a simplified implementation of quadsort. Fluxsort itself is relatively simple.
+People wanting to port fluxsort might want to have a look at [piposort](https://github.com/scandum/piposort), which is a simplified implementation of quadsort. Fluxsort itself is relatively simple. Earlier versions of fluxsort have a less bulky analyzer.
 
 Visualization
 -------------
