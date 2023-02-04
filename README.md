@@ -38,7 +38,7 @@ Quadsort, as of September 2021, uses a branchless optimization as well, and writ
 
 Generic data optimizations
 --------------------------
-Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data handling. If after a partition all elements were smaller or equal to the pivot, a reverse partition is performed, filtering out all elements equal to the pivot, next it carries on as usual. This typically only occurs when sorting tables with many identical values, like gender, birthyear, etc. Generic data performance is slightly increased further by checking if the same pivot is chosen twice in a row, in which case it performs a reverse partition as well.
+Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data handling. If after a partition all elements were smaller or equal to the pivot, a reverse partition is performed, filtering out all elements equal to the pivot, next it carries on as usual. This typically only occurs when sorting tables with many identical values, like gender, age, etc. Fluxsort has a small bias in its pivot selection to increase the odds of this happening. In addition, generic data performance is improved slightly by checking if the same pivot is chosen twice in a row, in which case it performs a reverse partition as well. Pivot retention was first introduced by [pdqsort](https://github.com/orlp/pdqsort).
 
 ```
 ┌──────────────────────────────────┬───┬──────────────┐
@@ -124,7 +124,7 @@ Variants
 
 - [wolfsort](https://github.com/scandum/wolfsort) is a hybrid stable radixsort / fluxsort with improved performance on random data. It's mostly a proof of concept that only works on unsigned 32 bit integers.
 
-- [glidesort](https://github.com/orlp/glidesort) is a hybrid stable fluxsort / timsort written in Rust. The timsort is enhanced with quadsort's branchless merge logic and powersort's optimization to run lengths. Both the flux partition and parity merge routines try to write to four memory regions instead of two, which may give a performance benefit on the most recent hardware when sorting very large arrays of primitive types. Auxiliary memory use is reduced by up to `n / 8` for large arrays.
+- [glidesort](https://github.com/orlp/glidesort) is a hybrid stable quicksort / timsort written in Rust. The timsort is enhanced with quadsort's branchless merge logic and powersort's optimization to run lengths. Partitioning is similar to fluxsort, except that it is bidirectional like a parity merge, writing to 2 instead of 4 memory regions. The merge routines increase from 2 to 4 through partitioning and conjoining quad merges. Reportedly, doing this gives a performance benefit on the most recent hardware, while decreasing performance on older hardware. Auxiliary memory use is reduced by up to `n / 8` for large arrays.
 
 Visualization
 -------------
