@@ -114,6 +114,18 @@ Porting
 -------
 People wanting to port fluxsort might want to have a look at [piposort](https://github.com/scandum/piposort), which is a simplified implementation of quadsort. Fluxsort itself is relatively simple. Earlier versions of fluxsort have a less bulky analyzer.
 
+Variants
+--------
+- [blitsort](https://github.com/scandum/blitsort) is a hybrid stable in-place rotate fluxsort / quadsort.
+
+- [crumsort](https://github.com/scandum/crumsort) is a hybrid unstable in-place quicksort / quadsort.
+
+- [piposort](https://github.com/scandum/piposort) is a simplified branchless quadsort with a much smaller code size and complexity while still being very fast. Piposort might be of use to people who want to port quadsort. This is a lot easier when you start out small.
+
+- [wolfsort](https://github.com/scandum/wolfsort) is a hybrid stable radixsort / fluxsort with improved performance on random data. It's mostly a proof of concept that only works on unsigned 32 bit integers.
+
+- [glidesort](https://github.com/orlp/glidesort) is a hybrid stable fluxsort / timsort written in Rust. The timsort is enhanced with quadsort's branchless merge logic and powersort's optimization to run lengths. Both the flux partition and parity merge routines try to write to four memory regions instead of two, which may give a performance benefit on the most recent hardware when sorting very large arrays of primitive types. Auxiliary memory use is reduced by up to `n / 8` for large arrays.
+
 Visualization
 -------------
 In the visualization below four tests are performed on 512 elements: Random, Generic, Random Half, and Ascending Tiles. Partitions greater than 48 elements use the pseudomedian of 15 to select the pivot.
