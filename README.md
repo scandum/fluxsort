@@ -38,7 +38,7 @@ Quadsort, as of September 2021, uses a branchless optimization as well, and writ
 
 Generic data optimizations
 --------------------------
-Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data handling. If the same pivot is chosen twice in a row it performs a reverse partition, filtering out all elements equal to the pivot, next it carries on as usual. In addition, if after a partition all elements were smaller or equal to the pivot, a reverse partition is performed. This typically only occurs when sorting tables with many identical values, like gender, birthyear, etc.
+Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data handling. If after a partition all elements were smaller or equal to the pivot, a reverse partition is performed, filtering out all elements equal to the pivot, next it carries on as usual. This typically only occurs when sorting tables with many identical values, like gender, birthyear, etc. Generic data performance is slightly increased further by checking if the same pivot is chosen twice in a row, in which case it performs a reverse partition as well.
 
 ```
 ┌──────────────────────────────────┬───┬──────────────┐
