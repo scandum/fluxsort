@@ -32,9 +32,11 @@ Median selection uses a branchless comparison technique that selects the pseudom
 
 When sorting, branchless comparisons are primarily useful to take advantage of memory-level parallelism. After writing data, the process can continue without having to wait for the write operation to have actually finished, and the process will primarily stall when a cache line is fetched. Since quicksort partitions to two memory regions, part of the loop can continue, reducing the wait time for cache line fetches. This gives an overall performance gain, even though the branchless operation is more expensive.
 
-When the comparison becomes more expensive (like string comparisons), the size of the type is increased, the size of the partition is increased, or the comparison accesses uncached memory regions, the benefit of memory-level parallelism is reduced, and can even result in slower overall execution. While it's possible to write to four memory regions at once, the cost-benefit is dubious for a general purpose sort, and likely hardware dependant.
+When the comparison becomes more expensive (like string comparisons), the size of the type is increased, the size of the partition is increased, or the comparison accesses uncached memory regions, the benefit of memory-level parallelism is reduced, and can even result in slower overall execution. While it's possible to write to four memory regions at once, instead of two, the cost-benefit is dubious for a general purpose sort, the added complexity would make porting and validating the code less appealing, and the performance gains are mostly hardware dependent.
 
 Quadsort, as of September 2021, uses a branchless optimization as well, and writes to two distinct memory regions by merging both ends of an array simultaneously. For sorting strings and objects quadsort's overall branchless performance is better than fluxsort's with the exception that fluxsort is faster on random data with low cardinality.
+
+As a general note, branch prediction is awesome. Quadsort and fluxsort try to take advantage of branch prediction where possible.
 
 Generic data optimizations
 --------------------------
@@ -60,7 +62,7 @@ Fluxsort performs low cost run detection while it partitions and switches to qua
 
 Large array optimizations
 -------------------------
-For partitions larger than 65536 elements fluxsort obtains the median of 128 or 256. It does so by copying 128 or 256 random elements to swap memory, sorting them with quadsort, and taking the center element.
+For partitions larger than 65536 elements fluxsort obtains the median of 128, 256, or 512. It does so by copying 128, 256, or 512 random elements to swap memory, sorting them with quadsort, and taking the center element.
 
 Small array optimizations
 -------------------------
@@ -112,13 +114,13 @@ Fluxsort needs to be compiled using `gcc -O3` for optimal performance.
 
 Porting
 -------
-People wanting to port fluxsort might want to have a look at [piposort](https://github.com/scandum/piposort), which is a simplified implementation of quadsort. Fluxsort itself is relatively simple. Earlier versions of fluxsort have a less bulky analyzer.
+People wanting to port fluxsort might want to have a look at [piposort](https://github.com/scandum/piposort), which is a simplified implementation of quadsort. Fluxsort itself is relatively simple. Earlier versions of fluxsort have a less bulky analyzer. Fluxsort works without the analyzer, but will be less adaptive.
 
 Variants
 --------
-- [blitsort](https://github.com/scandum/blitsort) is a hybrid stable in-place rotate fluxsort / quadsort.
+- [blitsort](https://github.com/scandum/blitsort) is an in-place variant of fluxsort. By default blitsort uses 512 elements of auxiliary memory, but it can easily be used with anywhere from 32 to n elements. It can be configured to use sqrt(n) memory, but other schemes are possible, allowing blitsort to outperform fluxsort by optimizing memory use for a specific system. The only other difference with fluxsort is that it currently does not detect emergent patterns.
 
-- [crumsort](https://github.com/scandum/crumsort) is a hybrid unstable in-place quicksort / quadsort.
+- [crumsort](https://github.com/scandum/crumsort) is a hybrid unstable in-place quicksort / quadsort. Crumsort has many similarities with fluxsort, but it uses a novel in-place and unstable partitioning scheme.
 
 - [piposort](https://github.com/scandum/piposort) is a simplified branchless quadsort with a much smaller code size and complexity while still being very fast. Piposort might be of use to people who want to port quadsort. This is a lot easier when you start out small.
 
