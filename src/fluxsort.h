@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
+#include <float.h>
 
 typedef int CMPFUNC (const void *a, const void *b);
 
@@ -203,13 +204,13 @@ typedef int CMPFUNC (const void *a, const void *b);
 //└────────────────────────────────────────────────────┘//
 //////////////////////////////////////////////////////////
 
-#define VAR long double
-#define FUNC(NAME) NAME##128
-
-#include "fluxsort.c"
-
-#undef VAR
-#undef FUNC
+#if (DBL_MANT_DIG < LDBL_MANT_DIG)
+  #define VAR long double
+  #define FUNC(NAME) NAME##128
+    #include "fluxsort.c"
+  #undef VAR
+  #undef FUNC
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //┌────────────────────────────────────────────────────────────────────┐//
@@ -232,22 +233,32 @@ void fluxsort(void *array, size_t nmemb, size_t size, CMPFUNC *cmp)
 	switch (size)
 	{
 		case sizeof(char):
-			return fluxsort8(array, nmemb, cmp);
+			fluxsort8(array, nmemb, cmp);
+			return;
 
 		case sizeof(short):
-			return fluxsort16(array, nmemb, cmp);
+			fluxsort16(array, nmemb, cmp);
+			return;
 
 		case sizeof(int):
-			return fluxsort32(array, nmemb, cmp);
+			fluxsort32(array, nmemb, cmp);
+			return;
 
 		case sizeof(long long):
-			return fluxsort64(array, nmemb, cmp);
-
+			fluxsort64(array, nmemb, cmp);
+			return;
+#if (DBL_MANT_DIG < LDBL_MANT_DIG)
 		case sizeof(long double):
-			return fluxsort128(array, nmemb, cmp);
+			fluxsort128(array, nmemb, cmp);
+			return;
+#endif
 
 		default:
-			return assert(size == sizeof(char) || size == sizeof(short) || size == sizeof(int) || size == sizeof(long long) || size == sizeof(long double));
+#if (DBL_MANT_DIG < LDBL_MANT_DIG)
+			assert(size == sizeof(char) || size == sizeof(short) || size == sizeof(int) || size == sizeof(long long) || size == sizeof(long double));
+#else
+			assert(size == sizeof(char) || size == sizeof(short) || size == sizeof(int) || size == sizeof(long long));
+#endif
 	}
 }
 

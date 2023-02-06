@@ -34,7 +34,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
-#include <stdalign.h>
+#include <float.h>
+//#include <stdalign.h>
 
 typedef int CMPFUNC (const void *a, const void *b);
 
@@ -43,7 +44,8 @@ typedef int CMPFUNC (const void *a, const void *b);
 
 // When sorting an array of pointers, like a string array, the QUAD_CACHE needs
 // to be set for proper performance when sorting large arrays.
-// quadsort_prim() can be used to sort 32 and 64 bit primitives.
+// quadsort_prim() can be used to sort arrays of 32 and 64 bit integers
+// without a comparison function or cache restrictions.
 
 // With a 6 MB L3 cache a value of 262144 works well.
 
@@ -128,18 +130,6 @@ typedef int CMPFUNC (const void *a, const void *b);
 #undef VAR
 #undef FUNC
 
-#define VAR float
-#define FUNC(NAME) NAME##_float32
-#ifndef cmp
-  #define cmp(a,b) (*(a) > *(b))
-  #include "quadsort.c"
-  #undef cmp
-#else
-  #include "quadsort.c"
-#endif
-#undef VAR
-#undef FUNC
-
 //////////////////////////////////////////////////////////
 // ┌───────────────────────────────────────────────────┐//
 // │        █████┐ ██┐  ██┐   ██████┐ ██████┐████████┐ │//
@@ -175,18 +165,6 @@ typedef int CMPFUNC (const void *a, const void *b);
 
 #define VAR unsigned long long
 #define FUNC(NAME) NAME##_uint64
-#ifndef cmp
-  #define cmp(a,b) (*(a) > *(b))
-  #include "quadsort.c"
-  #undef cmp
-#else
-  #include "quadsort.c"
-#endif
-#undef VAR
-#undef FUNC
-
-#define VAR double
-#define FUNC(NAME) NAME##_double64
 #ifndef cmp
   #define cmp(a,b) (*(a) > *(b))
   #include "quadsort.c"
@@ -252,14 +230,16 @@ typedef int CMPFUNC (const void *a, const void *b);
 //└────────────────────────────────────────────────────┘//
 //////////////////////////////////////////////////////////
 
-// 128 reflects the name, though the actual size is 80, 96, or 128 bits,
-// depending on platform.
+// 128 reflects the name, though the actual size of a long double is 64, 80,
+// 96, or 128 bits, depending on platform.
 
-#define VAR long double
-#define FUNC(NAME) NAME##128
-#include "quadsort.c"
-#undef VAR
-#undef FUNC
+#if (DBL_MANT_DIG < LDBL_MANT_DIG)
+  #define VAR long double
+  #define FUNC(NAME) NAME##128
+  #include "quadsort.c"
+  #undef VAR
+  #undef FUNC
+#endif
 
 ///////////////////////////////////////////////////////////
 //┌─────────────────────────────────────────────────────┐//
@@ -318,17 +298,21 @@ void quadsort(void *array, size_t nmemb, size_t size, CMPFUNC *cmp)
 		case sizeof(long long):
 			quadsort64(array, nmemb, cmp);
 			return;
-
+#if (DBL_MANT_DIG < LDBL_MANT_DIG)
 		case sizeof(long double):
 			quadsort128(array, nmemb, cmp);
 			return;
-
+#endif
 //		case sizeof(struct256):
 //			quadsort256(array, nmemb, cmp);
-			return;
+//			return;
 
 		default:
+#if (DBL_MANT_DIG < LDBL_MANT_DIG)
 			assert(size == sizeof(char) || size == sizeof(short) || size == sizeof(int) || size == sizeof(long long) || size == sizeof(long double));
+#else
+			assert(size == sizeof(char) || size == sizeof(short) || size == sizeof(int) || size == sizeof(long long));
+#endif
 //			qsort(array, nmemb, size, cmp);
 	}
 }
@@ -345,7 +329,7 @@ void quadsort(void *array, size_t nmemb, size_t size, CMPFUNC *cmp)
 //		case  7: double
 //		case  8: signed long long
 //		case  9: unsigned long long
-//		case 16: long double
+//		case  ?: long double, use sizeof(long double):
 
 void quadsort_prim(void *array, size_t nmemb, size_t size)
 {
@@ -361,12 +345,6 @@ void quadsort_prim(void *array, size_t nmemb, size_t size)
 			return;
 		case 5:
 			quadsort_uint32(array, nmemb, NULL);
-			return;
-		case 6:
-			quadsort_float32(array, nmemb, NULL);
-			return;
-		case 7:
-			quadsort_double64(array, nmemb, NULL);
 			return;
 		case 8:
 			quadsort_int64(array, nmemb, NULL);
