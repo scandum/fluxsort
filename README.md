@@ -1,10 +1,10 @@
 Intro
 -----
-This document describes a hybrid mergesort / quicksort named fluxsort. The sort is stable, adaptive, branchless, and has exceptional performance. A [visualisation](https://github.com/scandum/fluxsort#visualization) and [benchmarks](https://github.com/scandum/fluxsort#benchmarks) are available at the bottom.
+This document describes a stable quicksort / mergesort hybrid named fluxsort. The sort is stable, adaptive, branchless, and has exceptional performance. A [visualisation](https://github.com/scandum/fluxsort#visualization) and [benchmarks](https://github.com/scandum/fluxsort#benchmarks) are available at the bottom.
 
 Analyzer
 --------
-Fluxsort starts out with an analyzer that detects fully sorted arrays and sorts reverse order arrays using n comparisons. It also splits the array in 4 segments and obtains a measure of presortedness for each segment, switching to [quadsort](https://github.com/scandum/quadsort) if the segment is more than 50% ordered.
+Fluxsort starts out with an analyzer that detects fully sorted arrays, and sorts reverse order arrays, using n comparisons. It also splits the array in 4 segments and obtains a measure of presortedness for each segment, switching to [quadsort](https://github.com/scandum/quadsort) if the segment is more than 50% ordered.
 
 While arguably not as adaptive as the bottom-up analyzer used by quadsort, a top-down analyzer works well because quicksort significantly benefits from sorting longer ranges. This approach results in more robust overall adaptivity as fluxsort cannot be tricked into performing less efficient partitions by small sorted runs. In addition, the analyzer will execute what could be considered a true top-down merge on the 4 segments.
 
@@ -66,7 +66,7 @@ For partitions larger than 65536 elements fluxsort obtains the median of 128, 25
 
 Small array optimizations
 -------------------------
-For partitions smaller than 24 elements fluxsort uses quadsort's small array sorting routine. This routine uses branchless parity merges for the first 4 or 8 elements, and twice-unguarded insertion sort to sort the remainder. If the array exceeds 15 elements it is split in 4 segments and parity merged. This gives a significant performance gain compared to the unguarded insertion sort used by most quicksorts.
+For partitions smaller than 24 elements fluxsort uses quadsort's small array sorting routine. This routine uses branchless parity merges for the first 4 or 8 elements, and twice-unguarded insertion sort to sort the remainder. If the array exceeds 15 elements it is split in 4 segments and parity merged. This gives a significant performance gain compared to the unguarded insertion sort used by most introsorts.
 
 Big O
 -----
@@ -126,7 +126,7 @@ Variants
 
 - [wolfsort](https://github.com/scandum/wolfsort) is a hybrid stable radixsort / fluxsort with improved performance on random data. It's mostly a proof of concept that only works on unsigned 32 bit integers.
 
-- [glidesort](https://github.com/orlp/glidesort) is a hybrid stable quicksort / timsort written in Rust. The timsort is enhanced with quadsort's branchless merge logic and powersort's optimization to run lengths. Partitioning is similar to fluxsort, except that it is bidirectional like a parity merge, writing to 4 instead of 2 memory regions. Similarly, the memory regions of the merge routine are increase from 2 to 4 through partitioning and conjoining quad merges. Reportedly, doing this gives a performance benefit on the most recent hardware, while decreasing performance on older hardware. Auxiliary memory use is reduced by up to `n / 8` for large arrays.
+- [glidesort](https://github.com/orlp/glidesort) is a hybrid stable quicksort / timsort written in Rust. The timsort is enhanced with quadsort's bidirectional branchless merge logic. Partitioning is similar to fluxsort, except that it is bidirectional like a parity merge, writing to 4 instead of 2 memory regions. Similarly, the memory regions of the merge routine are increase from 2 to 4 through partitioning and conjoining quad merges. Reportedly, doing this gives a performance benefit on the most recent hardware, while decreasing overall performance on older hardware as per my own experiments. Like fluxsort, pivot selection is branchless and pivot candidate selection is an approximation of the square root of the partition size for large arrays. Small array sorting has been sped up by using quadsort's branchless parity merges.
 
 Visualization
 -------------
