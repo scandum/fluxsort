@@ -24,7 +24,7 @@
 */
 
 /*
-	fluxsort 1.1.5.4
+	fluxsort 1.2.1.1
 */
 
 #ifndef FLUXSORT_H

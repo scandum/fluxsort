@@ -24,7 +24,7 @@
 */
 
 /*
-	fluxsort 1.1.5.4
+	fluxsort 1.2.1.1
 */
 
 #define FLUX_OUT 24
@@ -55,6 +55,10 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 
 	astreaks = bstreaks = cstreaks = dstreaks = 0;
 	abalance = bbalance = cbalance = dbalance = 0;
+
+	if (quad1 < quad2) {bbalance += cmp(ptb, ptb + 1) > 0; ptb++;}
+	if (quad1 < quad3) {cbalance += cmp(ptc, ptc + 1) > 0; ptc++;}
+	if (quad1 < quad4) {dbalance += cmp(ptd, ptd + 1) > 0; ptd++;}
 
 	for (cnt = nmemb ; cnt > 132 ; cnt -= 128)
 	{
@@ -87,10 +91,6 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 		cbalance += cmp(ptc, ptc + 1) > 0; ptc++;
 		dbalance += cmp(ptd, ptd + 1) > 0; ptd++;
 	}
-
-	if (quad1 < quad2) {bbalance += cmp(ptb, ptb + 1) > 0; ptb++;}
-	if (quad1 < quad3) {cbalance += cmp(ptc, ptc + 1) > 0; ptc++;}
-	if (quad1 < quad4) {dbalance += cmp(ptd, ptd + 1) > 0; ptd++;}
 
 	cnt = abalance + bbalance + cbalance + dbalance;
 
@@ -125,7 +125,6 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 			case 6: FUNC(quad_reversal)(pta + 1, ptd); bbalance = cbalance = dbalance = 0; break;
 			case 7: FUNC(quad_reversal)(array, ptd); return;
 		}
-
 		if (asum && abalance) {FUNC(quad_reversal)(array,   pta); abalance = 0;}
 		if (bsum && bbalance) {FUNC(quad_reversal)(pta + 1, ptb); bbalance = 0;}
 		if (csum && cbalance) {FUNC(quad_reversal)(ptb + 1, ptc); cbalance = 0;}
@@ -219,32 +218,31 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 
 	if (cmp(pta, pta + 1) <= 0)
 	{
-		memcpy(swap, array, half1 * sizeof(VAR));
-
 		if (cmp(ptc, ptc + 1) <= 0)
 		{
 			if (cmp(ptb, ptb + 1) <= 0)
 			{
 				return;
 			}
-			memcpy(swap + half1, array + half1, half2 * sizeof(VAR));
+			memcpy(swap, array, nmemb * sizeof(VAR));
 		}
 		else
 		{
 			FUNC(galloping_merge)(swap + half1, array + half1, quad3, quad4, cmp);
+			memcpy(swap, array, half1 * sizeof(VAR));
 		}
 	}
 	else
 	{
-		FUNC(galloping_merge)(swap, array, quad1, quad2, cmp);
-
 		if (cmp(ptc, ptc + 1) <= 0)
 		{
 			memcpy(swap + half1, array + half1, half2 * sizeof(VAR));
+			FUNC(galloping_merge)(swap, array, quad1, quad2, cmp);
 		}
 		else
 		{
 			FUNC(galloping_merge)(swap + half1, ptb + 1, quad3, quad4, cmp);
+			FUNC(galloping_merge)(swap, array, quad1, quad2, cmp);
 		}
 	}
 	FUNC(galloping_merge)(array, swap, half1, half2, cmp);
@@ -261,15 +259,19 @@ VAR FUNC(median_of_sqrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC 
 
 	div = nmemb / sqrt;
 
-	pta = ptx + rand() % sqrt;
+	pta = ptx + (size_t) &div % div; // optional offset
 
 	pts = ptx == array ? swap : array;
 
-	for (cnt = 0 ; cnt < sqrt ; pta += div)
+	for (cnt = 0 ; cnt < sqrt ; cnt++)
 	{
-		pts[cnt++] = pta[0];
+		pts[cnt] = pta[0]; pta += div;
 	}
-	FUNC(quadsort_swap)(pts, pts + sqrt, sqrt, sqrt, cmp);
+
+	if (sqrt == 256)
+		FUNC(flux_partition)(pts, pts + sqrt, pts, pts + sqrt * 2, sqrt, cmp);
+	else
+		FUNC(quadsort_swap)(pts, pts + sqrt, sqrt, sqrt, cmp);
 
 	return pts[sqrt / 2];
 }
@@ -501,7 +503,7 @@ void FUNC(fluxsort)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 
 void FUNC(fluxsort_swap)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
 {
-	if (nmemb <= 132 || swap_size < nmemb)
+	if (nmemb <= 132)
 	{
 		FUNC(quadsort_swap)(array, swap, swap_size, nmemb, cmp);
 	}
