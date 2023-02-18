@@ -481,7 +481,7 @@ size_t FUNC(quad_swap)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 
 // quad merge support routines
 
-void FUNC(galloping_merge)(VAR *dest, VAR *from, size_t left, size_t right, CMPFUNC *cmp)
+void FUNC(cross_merge)(VAR *dest, VAR *from, size_t left, size_t right, CMPFUNC *cmp)
 {
 	VAR *ptl, *tpl, *ptr, *tpr, *ptd, *tpd;
 	size_t loop;
@@ -595,15 +595,15 @@ void FUNC(quad_merge_block)(VAR *array, VAR *swap, size_t block, CMPFUNC *cmp)
 	switch ((cmp(pt1 - 1, pt1) <= 0) | (cmp(pt3 - 1, pt3) <= 0) * 2)
 	{
 		case 0:
-			FUNC(galloping_merge)(swap, array, block, block, cmp);
-			FUNC(galloping_merge)(swap + block_x_2, pt2, block, block, cmp);
+			FUNC(cross_merge)(swap, array, block, block, cmp);
+			FUNC(cross_merge)(swap + block_x_2, pt2, block, block, cmp);
 			break;
 		case 1:
 			memcpy(swap, array, block_x_2 * sizeof(VAR));
-			FUNC(galloping_merge)(swap + block_x_2, pt2, block, block, cmp);
+			FUNC(cross_merge)(swap + block_x_2, pt2, block, block, cmp);
 			break;
 		case 2:
-			FUNC(galloping_merge)(swap, array, block, block, cmp);
+			FUNC(cross_merge)(swap, array, block, block, cmp);
 			memcpy(swap + block_x_2, pt2, block_x_2 * sizeof(VAR));
 			break;
 		case 3:
@@ -611,7 +611,7 @@ void FUNC(quad_merge_block)(VAR *array, VAR *swap, size_t block, CMPFUNC *cmp)
 				return;
 			memcpy(swap, array, block_x_2 * 2 * sizeof(VAR));
 	}
-	FUNC(galloping_merge)(array, swap, block_x_2, block_x_2, cmp);
+	FUNC(cross_merge)(array, swap, block_x_2, block_x_2, cmp);
 }
 
 size_t FUNC(quad_merge)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, size_t block, CMPFUNC *cmp)
@@ -646,7 +646,7 @@ size_t FUNC(quad_merge)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, s
 
 void FUNC(partial_forward_merge)(VAR *array, VAR *swap, size_t nmemb, size_t block, CMPFUNC *cmp)
 {
-	VAR *ptl, *ptr, *tpl, *tpr; // head, tail pointer left, right
+	VAR *ptl, *ptr, *tpl, *tpr;
 	size_t x, y;
 
 	if (nmemb == block)
@@ -699,7 +699,7 @@ void FUNC(partial_forward_merge)(VAR *array, VAR *swap, size_t nmemb, size_t blo
 void FUNC(partial_backward_merge)(VAR *array, VAR *swap, size_t nmemb, size_t block, CMPFUNC *cmp)
 {
 	VAR *tpl, *tpa, *tpr; // tail pointer left, array, right
-	size_t x, y;
+	size_t loop, x, y;
 
 	if (nmemb == block)
 	{
@@ -717,6 +717,41 @@ void FUNC(partial_backward_merge)(VAR *array, VAR *swap, size_t nmemb, size_t bl
 	memcpy(swap, array + block, (nmemb - block) * sizeof(VAR));
 
 	tpr = swap + nmemb - block - 1;
+
+	while (tpl > array + 32 && tpr > swap + 32)
+	{
+		tpl_tpr32: if (cmp(tpl, tpr - 31) <= 0)
+		{
+			loop = 32; do *tpa-- = *tpr--; while (--loop);
+
+			if (tpr > swap + 32) {goto tpl_tpr32;} break;
+		}
+
+		tpl32_tpr: if (cmp(tpl - 31, tpr) > 0)
+		{
+			loop = 32; do *tpa-- = *tpl--; while (--loop);
+			
+			if (tpl > array + 32) {goto tpl32_tpr;} break;
+		}
+
+		loop = 16; do
+		{
+			if (cmp(tpl, tpr - 1) <= 0)
+			{
+				*tpa-- = *tpr--; *tpa-- = *tpr--;
+			}
+			else if (cmp(tpl - 1, tpr) > 0)
+			{
+				*tpa-- = *tpl--; *tpa-- = *tpl--;
+			}
+			else
+			{
+				x = cmp(tpl, tpr) <= 0; y = !x; tpa--; tpa[x] = *tpr; tpr -= 1; tpa[y] = *tpl; tpl -= 1; tpa--;
+				tail_branchless_merge(tpa, y, tpl, tpr, cmp);
+			}
+		}
+		while (--loop);
+	}
 
 	while (tpr > swap + 1 && tpl > array + 1)
 	{
