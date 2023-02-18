@@ -132,6 +132,10 @@ Variants
 
 - [glidesort](https://github.com/orlp/glidesort) is a hybrid stable quicksort / timsort written in Rust. The timsort is enhanced with quadsort's bidirectional branchless merge logic. Partitioning is similar to fluxsort, except that it is bidirectional like a parity merge, writing to 4 instead of 2 memory regions. Similarly, the memory regions of the merge routine are increase from 2 to 4 through partitioning and conjoining quad merges. Increasing the memory regions can both increase and decrease performance. Like fluxsort, pivot selection is branchless and pivot candidate selection is an approximation of the square root of the partition size for large arrays. Small array sorting is sped up by using quadsort's branchless parity merges.
 
+Credits
+-------
+I was likely the first to write a branchless stable quicksort and I introduced a few new things, like branchless pivot selection, increasing the pivot candidate selection from the pseudomedian of 9 to an approximation of sqrt(n), improving small partition sorting by utilizing branchless parity merges, stably partitioning partially in-place, run detection for increased adaptivity, detecting emergent patterns, and an efficient switch between partitioning swap and main memory.
+
 Visualization
 -------------
 In the visualization below four tests are performed on 512 elements: Random, Generic, Random Half, and Ascending Tiles. Partitions greater than 48 elements use the pseudomedian of 15 to select the pivot.
