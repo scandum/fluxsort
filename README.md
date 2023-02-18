@@ -138,9 +138,9 @@ I was likely the first to write a branchless stable quicksort and I introduced a
 
 Visualization
 -------------
-In the visualization below eleven tests are performed on 256 elements. The various distributions are indexed on YouTube: https://youtu.be/Zg7OkQxmohg.
+In the visualization below eleven tests are performed on 256 elements. The various distributions are indexed on YouTube: https://youtu.be/TDJ5zpcZJ18.
 
-[![fluxsort visualization](/images/fluxsort.gif)](https://youtu.be/Zg7OkQxmohg)
+[![fluxsort visualization](/images/fluxsort.gif)](https://youtu.be/TDJ5zpcZJ18)
 
 Benchmarks
 ----------
