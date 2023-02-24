@@ -228,7 +228,7 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 		}
 		else
 		{
-			FUNC(galloping_merge)(swap + half1, array + half1, quad3, quad4, cmp);
+			FUNC(cross_merge)(swap + half1, array + half1, quad3, quad4, cmp);
 			memcpy(swap, array, half1 * sizeof(VAR));
 		}
 	}
@@ -237,15 +237,15 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 		if (cmp(ptc, ptc + 1) <= 0)
 		{
 			memcpy(swap + half1, array + half1, half2 * sizeof(VAR));
-			FUNC(galloping_merge)(swap, array, quad1, quad2, cmp);
+			FUNC(cross_merge)(swap, array, quad1, quad2, cmp);
 		}
 		else
 		{
-			FUNC(galloping_merge)(swap + half1, ptb + 1, quad3, quad4, cmp);
-			FUNC(galloping_merge)(swap, array, quad1, quad2, cmp);
+			FUNC(cross_merge)(swap + half1, ptb + 1, quad3, quad4, cmp);
+			FUNC(cross_merge)(swap, array, quad1, quad2, cmp);
 		}
 	}
-	FUNC(galloping_merge)(array, swap, half1, half2, cmp);
+	FUNC(cross_merge)(array, swap, half1, half2, cmp);
 }
 
 // The next 5 functions are used for pivot selection
@@ -480,35 +480,40 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmem
 	}
 }
 
-void FUNC(fluxsort)(VAR *array, size_t nmemb, CMPFUNC *cmp)
+void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp)
 {
+	VAR *pta = (VAR *) array;
+
 	if (nmemb <= 132)
 	{
-		FUNC(quadsort)(array, nmemb, cmp);
+		FUNC(quadsort)(pta, nmemb, cmp);
 	}
 	else
 	{
-		VAR *swap = malloc(nmemb * sizeof(VAR));
+		VAR *swap = (VAR *) malloc(nmemb * sizeof(VAR));
 
 		if (swap == NULL)
 		{
-			FUNC(quadsort)(array, nmemb, cmp);
+			FUNC(quadsort)(pta, nmemb, cmp);
 			return;
 		}
-		FUNC(flux_analyze)(array, swap, nmemb, nmemb, cmp);
+		FUNC(flux_analyze)(pta, swap, nmemb, nmemb, cmp);
 
 		free(swap);
 	}
 }
 
-void FUNC(fluxsort_swap)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
+void FUNC(fluxsort_swap)(void *array, void *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
 {
+	VAR *pta = (VAR *) array;
+	VAR *pts = (VAR *) swap;
+
 	if (nmemb <= 132)
 	{
-		FUNC(quadsort_swap)(array, swap, swap_size, nmemb, cmp);
+		FUNC(quadsort_swap)(pta, pts, swap_size, nmemb, cmp);
 	}
 	else
 	{
-		FUNC(flux_analyze)(array, swap, swap_size, nmemb, cmp);
+		FUNC(flux_analyze)(pta, pts, swap_size, nmemb, cmp);
 	}
 }
