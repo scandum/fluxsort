@@ -233,23 +233,23 @@ void fluxsort(void *array, size_t nmemb, size_t size, CMPFUNC *cmp)
 	switch (size)
 	{
 		case sizeof(char):
-			fluxsort8(array, nmemb, cmp);
+			fluxsort8((char*)array, nmemb, cmp);
 			return;
 
 		case sizeof(short):
-			fluxsort16(array, nmemb, cmp);
+			fluxsort16((short*)array, nmemb, cmp);
 			return;
 
 		case sizeof(int):
-			fluxsort32(array, nmemb, cmp);
+			fluxsort32((int*)array, nmemb, cmp);
 			return;
 
 		case sizeof(long long):
-			fluxsort64(array, nmemb, cmp);
+			fluxsort64((long long*)array, nmemb, cmp);
 			return;
 #if (DBL_MANT_DIG < LDBL_MANT_DIG)
 		case sizeof(long double):
-			fluxsort128(array, nmemb, cmp);
+			fluxsort128((long double*)array, nmemb, cmp);
 			return;
 #endif
 
@@ -274,16 +274,16 @@ void fluxsort_prim(void *array, size_t nmemb, size_t size)
 	switch (size)
 	{
 		case 4:
-			fluxsort_int32(array, nmemb, NULL);
+			fluxsort_int32((int*)array, nmemb, NULL);
 			return;
 		case 5:
-			fluxsort_uint32(array, nmemb, NULL);
+			fluxsort_uint32((unsigned int*)array, nmemb, NULL);
 			return;
 		case 8:
-			fluxsort_int64(array, nmemb, NULL);
+			fluxsort_int64((long long*)array, nmemb, NULL);
 			return;
 		case 9:
-			fluxsort_uint64(array, nmemb, NULL);
+			fluxsort_uint64((unsigned long long*)array, nmemb, NULL);
 			return;
 		default:
 			assert(size == sizeof(int) || size == sizeof(int) + 1 || size == sizeof(long long) || size == sizeof(long long) + 1);

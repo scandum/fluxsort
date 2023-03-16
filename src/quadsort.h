@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <float.h>
+#include <string.h>
 //#include <stdalign.h>
 
 typedef int CMPFUNC (const void *a, const void *b);
@@ -316,23 +317,23 @@ void quadsort(void *array, size_t nmemb, size_t size, CMPFUNC *cmp)
 	switch (size)
 	{
 		case sizeof(char):
-			quadsort8(array, nmemb, cmp);
+			quadsort8((char*)array, nmemb, cmp);
 			return;
 
 		case sizeof(short):
-			quadsort16(array, nmemb, cmp);
+			quadsort16((short*)array, nmemb, cmp);
 			return;
 
 		case sizeof(int):
-			quadsort32(array, nmemb, cmp);
+			quadsort32((int*)array, nmemb, cmp);
 			return;
 
 		case sizeof(long long):
-			quadsort64(array, nmemb, cmp);
+			quadsort64((long long*)array, nmemb, cmp);
 			return;
 #if (DBL_MANT_DIG < LDBL_MANT_DIG)
 		case sizeof(long double):
-			quadsort128(array, nmemb, cmp);
+			quadsort128((long double*)array, nmemb, cmp);
 			return;
 #endif
 //		case sizeof(struct256):
@@ -373,16 +374,16 @@ void quadsort_prim(void *array, size_t nmemb, size_t size)
 	switch (size)
 	{
 		case 4:
-			quadsort_int32(array, nmemb, NULL);
+			quadsort_int32((int*)array, nmemb, NULL);
 			return;
 		case 5:
-			quadsort_uint32(array, nmemb, NULL);
+			quadsort_uint32((unsigned int*)array, nmemb, NULL);
 			return;
 		case 8:
-			quadsort_int64(array, nmemb, NULL);
+			quadsort_int64((long long*)array, nmemb, NULL);
 			return;
 		case 9:
-			quadsort_uint64(array, nmemb, NULL);
+			quadsort_uint64((unsigned long long*)array, nmemb, NULL);
 			return;
 		default:
 			assert(size == sizeof(int) || size == sizeof(int) + 1 || size == sizeof(long long) || size == sizeof(long long) + 1);

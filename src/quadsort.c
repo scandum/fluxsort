@@ -1064,7 +1064,7 @@ void FUNC(blit_merge)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, siz
 //└─────────────────────────────────────────────────────────────────────────┘//
 ///////////////////////////////////////////////////////////////////////////////
 
-void FUNC(quadsort)(void *array, size_t nmemb, CMPFUNC *cmp)
+void FUNC(quadsort)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 {
 	VAR *pta = (VAR *) array;
 
@@ -1102,7 +1102,7 @@ void FUNC(quadsort)(void *array, size_t nmemb, CMPFUNC *cmp)
 	}
 }
 
-void FUNC(quadsort_swap)(void *array, void *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
+void FUNC(quadsort_swap)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
 {
 	VAR *pta = (VAR *) array;
 	VAR *pts = (VAR *) swap;

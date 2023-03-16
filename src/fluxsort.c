@@ -480,7 +480,7 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmem
 	}
 }
 
-void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp)
+void FUNC(fluxsort)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 {
 	VAR *pta = (VAR *) array;
 
@@ -503,7 +503,7 @@ void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp)
 	}
 }
 
-void FUNC(fluxsort_swap)(void *array, void *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
+void FUNC(fluxsort_swap)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
 {
 	VAR *pta = (VAR *) array;
 	VAR *pts = (VAR *) swap;
