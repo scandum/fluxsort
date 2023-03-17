@@ -12,7 +12,9 @@ Increasing the segments from 4 to 16 is challenging due to register pressure.
 
 Partitioning
 ------------
-Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the pseudomedian of 9 for partitions smaller than 2024 elements, the pseudomedian of 25 if the array is smaller than 65536, and the median of 128, 256, or 512 for larger partitions, making the pivot selection an approximation of the cubic root of the partition size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 24 elements are sorted with quadsort.
+Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the quasimedian of 8 for partitions smaller than 2024 elements, and the quasimedian of 32, 64, 128, 256, 512, or 1024 for larger partitions, making the pivot selection an approximation of the cubic root of the partition size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 24 elements are sorted with quadsort.
+
+Quasimedian selection differs from traditional pseudomedian (median of medians) selection by utilizing a combination of the median of 4, quadsort, and a binary search.
 
 After obtaining a pivot the array is parsed from start to end. Elements smaller than the pivot are copied in-place to the start of the array, elements greater than the pivot are copied to swap memory. The partitioning routine is called recursively on the two partitions in main and swap memory.
 
@@ -20,15 +22,15 @@ Recursively partitioning through both swap and main memory is accomplished by pa
 
 Worst case handling
 -------------------
-To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the observed chance of a false positive is 1 in 1,336 for the pseudomedian of 9 and approximately 1 in 4 million for the pseudomedian of 25.
+To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the observed chance of a false positive is 1 in 3,000 for the quasimedian of 8 and less than 1 in 10 million for the quasimedian of 32.
 
-Combined with the analyzer fluxsort starts out with this makes the existence of killer patterns unlikely, other than at most a 33% performance slowdown by prematurely triggering the use of quadsort. However, for more complex comparisons, like strings, quadsort matches fluxsort, in which case it wouldn't make a difference.
+Combined with the analyzer fluxsort starts out with this makes the existence of killer patterns unlikely.
 
 Branchless optimizations
 ------------------------
-Fluxsort uses a branchless comparison optimization. The ability of quicksort to partition branchless was first described in "BlockQuicksort: How Branch Mispredictions don't affect Quicksort" by Stefan Edelkamp and Armin Weiss. Since Fluxsort uses auxiliary memory the partitioning scheme is simpler and faster than the one used by BlockQuicksort.
+Fluxsort uses a branchless comparison optimization. The ability of quicksort to partition branchless was first described in "BlockQuicksort: How Branch Mispredictions don't affect Quicksort" by Stefan Edelkamp and Armin Weiss. Since Fluxsort uses auxiliary memory, the partitioning scheme is simpler and faster than the one used by BlockQuicksort.
 
-Median selection uses a branchless comparison technique that selects the pseudomedian of 9 using 12 comparisons, and the pseudomedian of 25 using 42 comparisons.
+Median selection uses a branchless comparison technique that selects the quasimedian of 8 using 15 comparisons, and the quasimedian of 32 using 78 comparisons.
 
 When sorting, branchless comparisons are primarily useful to take advantage of memory-level parallelism. After writing data, the process can continue without having to wait for the write operation to have actually finished, and the process will primarily stall when a cache line is fetched. Since quicksort partitions to two memory regions, part of the loop can continue, reducing the wait time for cache line fetches. This gives an overall performance gain, even though the branchless operation is more expensive due to a lack of support for branchless operations in C and gcc.
 
@@ -66,11 +68,11 @@ Fluxsort performs low cost run detection while it partitions and switches to qua
 
 Large array optimizations
 -------------------------
-For partitions larger than 65536 elements fluxsort obtains the median of 128, 256, or 512. It does so by copying 128, 256, or 512 random elements to swap memory, sorting them with quadsort and taking the center right element.
+For partitions larger than 32768 elements fluxsort obtains the median of 64, 128, 256, 512, or 1024. It does so by copying random elements to swap memory, filtering out half by utilizing the median of 4, sorting two halves of the remaining elements with quadsort, and returning the center right element using a binary search.
 
 Small array optimizations
 -------------------------
-For partitions smaller than 24 elements fluxsort uses quadsort's small array sorting routine. This routine uses branchless parity merges for the first 4 or 8 elements, and twice-unguarded insertion sort to sort the remainder. If the array exceeds 15 elements it is split in 4 segments and parity merged. This gives a significant performance gain compared to the unguarded insertion sort used by most introsorts.
+For partitions smaller than 96 elements fluxsort uses quadsort's small array sorting routine. This routine uses branchless parity merges for the first 4, 8 or 16 elements, and twice-unguarded insertion sort to sort the remainder. If the array exceeds 24 elements, it is split in 4 segments, and parity merged. This gives a significant performance gain compared to the unguarded insertion sort used by most introsorts.
 
 Big O
 -----
@@ -135,6 +137,8 @@ Variants
 Credits
 -------
 I was likely the first to write a branchless stable quicksort and I introduced a few new things, like branchless pivot selection, increasing the pivot candidate selection from the pseudomedian of 9 to an approximation of sqrt(n), improving small partition sorting by utilizing branchless parity merges, stably partitioning partially in-place, run detection for increased adaptivity, detecting emergent patterns, and an efficient switch between partitioning swap and main memory.
+
+Special thanks to Control from the Holy Grail Sort Project for invaluable feedback and insights.
 
 Visualization
 -------------
