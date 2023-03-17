@@ -12,7 +12,7 @@ Increasing the segments from 4 to 16 is challenging due to register pressure.
 
 Partitioning
 ------------
-Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the quasimedian of 8 for partitions smaller than 2024 elements, and the quasimedian of 32, 64, 128, 256, 512, or 1024 for larger partitions, making the pivot selection an approximation of the cubic root of the partition size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 24 elements are sorted with quadsort.
+Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the quasimedian of 8 for partitions smaller than 2024 elements, and the quasimedian of 32, 64, 128, 256, 512, or 1024 for larger partitions, making the pivot selection an approximation of the cubic root of the partition size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 96 elements are sorted with quadsort.
 
 Quasimedian selection differs from traditional pseudomedian (median of medians) selection by utilizing a combination of the median of 4, quadsort, and a binary search.
 
