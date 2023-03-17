@@ -24,10 +24,10 @@
 */
 
 /*
-	fluxsort 1.2.1.1
+	fluxsort 1.2.1.2
 */
 
-#define FLUX_OUT 24
+#define FLUX_OUT 96
 
 void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *ptp, size_t nmemb, CMPFUNC *cmp);
 
@@ -248,95 +248,100 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 	FUNC(cross_merge)(array, swap, half1, half2, cmp);
 }
 
-// The next 5 functions are used for pivot selection
+// The next 4 functions are used for pivot selection
 
-VAR FUNC(median_of_sqrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
+VAR FUNC(binary_median)(VAR *pta, VAR *ptb, size_t len, CMPFUNC *cmp)
 {
-	VAR *pta, *pts;
-	size_t cnt, sqrt, div;
-
-	sqrt = nmemb < 262144 ? 128 : nmemb < 16777216 ? 256 : 512;
-
-	div = nmemb / sqrt;
-
-	pta = ptx + (size_t) &div % div; // optional offset
-
-	pts = ptx == array ? swap : array;
-
-	for (cnt = 0 ; cnt < sqrt ; cnt++)
+	while (len /= 2)
 	{
-		pts[cnt] = pta[0]; pta += div;
+		if (cmp(pta + len, ptb + len) <= 0) pta += len; else ptb += len;
 	}
-
-	if (sqrt == 256)
-		FUNC(flux_partition)(pts, pts + sqrt, pts, pts + sqrt * 2, sqrt, cmp);
-	else
-		FUNC(quadsort_swap)(pts, pts + sqrt, sqrt, sqrt, cmp);
-
-	return pts[sqrt / 2];
+	return cmp(pta, ptb) > 0 ? *pta : *ptb;
 }
 
-VAR FUNC(median_of_five)(VAR *array, size_t v0, size_t v1, size_t v2, size_t v3, size_t v4, CMPFUNC *cmp)
+void FUNC(trim_four)(VAR *pta, CMPFUNC *cmp)
 {
-	VAR swap[6], *pta;
-	size_t x, y, z;
+	VAR swap;
+	size_t x;
 
-	swap[2] = array[v0];
-	swap[3] = array[v1];
-	swap[4] = array[v2];
-	swap[5] = array[v3];
+	x = cmp(pta, pta + 1)  > 0; swap = pta[!x]; pta[0] = pta[x]; pta[1] = swap; pta += 2;
+	x = cmp(pta, pta + 1)  > 0; swap = pta[!x]; pta[0] = pta[x]; pta[1] = swap; pta -= 2;
 
-	pta = swap + 2;
-
-	x = cmp(pta, pta + 1) > 0; y = !x; swap[0] = pta[y]; pta[0] = pta[x]; pta[1] = swap[0]; pta += 2;
-	x = cmp(pta, pta + 1) > 0; y = !x; swap[0] = pta[y]; pta[0] = pta[x]; pta[1] = swap[0]; pta -= 2;
-	x = cmp(pta, pta + 2) > 0; y = !x; swap[0] = pta[0]; swap[1] = pta[2]; pta[0] = swap[x]; pta[2] = swap[y]; pta++;
-	x = cmp(pta, pta + 2) > 0; y = !x; swap[0] = pta[0]; swap[1] = pta[2]; pta[0] = swap[x]; pta[2] = swap[y];
-
-	pta[2] = array[v4];
-
-	x = cmp(pta, pta + 1) > 0;
-	y = cmp(pta, pta + 2) > 0;
-	z = cmp(pta + 1, pta + 2) > 0;
-
-	return pta[(x == y) + (y ^ z)];
-}
-
-VAR FUNC(median_of_twentyfive)(VAR *array, size_t nmemb, CMPFUNC *cmp)
-{
-	VAR swap[5];
-	size_t div = nmemb / 64;
-
-	swap[0] = FUNC(median_of_five)(array, div *  4, div *  1, div *  2, div *  8, div * 10, cmp);
-	swap[1] = FUNC(median_of_five)(array, div * 16, div * 12, div * 14, div * 18, div * 20, cmp);
-	swap[2] = FUNC(median_of_five)(array, div * 32, div * 24, div * 30, div * 34, div * 38, cmp);
-	swap[3] = FUNC(median_of_five)(array, div * 48, div * 42, div * 44, div * 50, div * 52, cmp);
-	swap[4] = FUNC(median_of_five)(array, div * 60, div * 54, div * 56, div * 62, div * 63, cmp);
-
-	return FUNC(median_of_five)(swap, 0, 1, 2, 3, 4, cmp);
-}
-
-size_t FUNC(median_of_three)(VAR *array, size_t v0, size_t v1, size_t v2, CMPFUNC *cmp)
-{
-	size_t v[3] = {v0, v1, v2};
-	char x, y, z;
-
-	x = cmp(array + v0, array + v1) > 0;
-	y = cmp(array + v0, array + v2) > 0;
-	z = cmp(array + v1, array + v2) > 0;
-
-	return v[(x == y) + (y ^ z)];
+	x = (cmp(pta, pta + 2) <= 0) * 2; pta[2] = pta[x]; pta++;
+	x = (cmp(pta, pta + 2)  > 0) * 2; pta[0] = pta[x];
 }
 
 VAR FUNC(median_of_nine)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 {
-	size_t x, y, z, div = nmemb / 16;
+	VAR *pta, swap[9];
+	size_t x, y, z;
 
-	x = FUNC(median_of_three)(array, div * 2, div * 1, div * 4, cmp);
-	y = FUNC(median_of_three)(array, div * 8, div * 6, div * 10, cmp);
-	z = FUNC(median_of_three)(array, div * 14, div * 12, div * 15, cmp);
+	z = nmemb / 9;
 
-	return array[FUNC(median_of_three)(array, x, y, z, cmp)];
+	pta = array;
+
+	for (x = 0 ; x < 9 ; x++)
+	{
+		swap[x] = *pta;
+
+		pta += z;
+	}
+
+	FUNC(trim_four)(swap, cmp);
+	FUNC(trim_four)(swap + 4, cmp);
+
+	swap[0] = swap[5];
+	swap[3] = swap[8];
+
+	FUNC(trim_four)(swap, cmp);
+
+	swap[0] = swap[6];
+
+	x = cmp(swap + 0, swap + 1) > 0;
+	y = cmp(swap + 0, swap + 2) > 0;
+	z = cmp(swap + 1, swap + 2) > 0;
+
+	return swap[(x == y) + (y ^ z)];
+}
+
+VAR FUNC(median_of_cbrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
+{
+	VAR *pta, *ptb, *pts;
+	size_t cnt, div, cbrt;
+
+	for (cbrt = 32 ; nmemb > cbrt * cbrt * cbrt && cbrt < 1024 ; cbrt *= 2) {}
+
+	div = nmemb / cbrt;
+
+	pta = ptx; // + (size_t) &div / 16 % div; // for a non-deterministic offset
+	pts = ptx == array ? swap : array;
+
+	for (cnt = 0 ; cnt < cbrt ; cnt++)
+	{
+		pts[cnt] = *pta;
+
+		pta += div;
+	}
+	pta = pts;
+	ptb = pts + cbrt / 2;
+
+	for (cnt = cbrt / 8 ; cnt ; cnt--)
+	{
+		FUNC(trim_four)(pta, cmp);
+		FUNC(trim_four)(ptb, cmp);
+
+		pta[0] = ptb[1];
+		pta[3] = ptb[2];
+
+		pta += 4;
+		ptb += 4;
+	}
+	cbrt /= 4;
+
+	FUNC(quadsort_swap)(pts, pts + cbrt * 2, cbrt, cbrt, cmp);
+	FUNC(quadsort_swap)(pts + cbrt, pts + cbrt * 2, cbrt, cbrt, cmp);
+
+	return FUNC(binary_median)(pts, pts + cbrt, cbrt, cmp);
 }
 
 // As per suggestion by Marshall Lochbaum to improve generic data handling by mimicking dual-pivot quicksort
@@ -430,17 +435,13 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmem
 	{
 		--piv;
 
-		if (nmemb <= 2048)
+		if (nmemb <= 2024)
 		{
 			*piv = FUNC(median_of_nine)(ptx, nmemb, cmp);
 		}
-		else if (nmemb <= 65536)
-		{
-			*piv = FUNC(median_of_twentyfive)(ptx, nmemb, cmp);
-		}
 		else
 		{
-			*piv = FUNC(median_of_sqrt)(array, swap, ptx, nmemb, cmp);
+			*piv = FUNC(median_of_cbrt)(array, swap, ptx, nmemb, cmp);
 		}
 
 		if (a_size && cmp(piv + 1, piv) <= 0)
