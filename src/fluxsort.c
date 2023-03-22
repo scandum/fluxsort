@@ -483,19 +483,18 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmem
 
 void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp)
 {
-	VAR *pta = (VAR *) array;
-
 	if (nmemb <= 132)
 	{
-		FUNC(quadsort)(pta, nmemb, cmp);
+		FUNC(quadsort)(array, nmemb, cmp);
 	}
 	else
 	{
+		VAR *pta = (VAR *) array;
 		VAR *swap = (VAR *) malloc(nmemb * sizeof(VAR));
 
 		if (swap == NULL)
 		{
-			FUNC(quadsort)(pta, nmemb, cmp);
+			FUNC(quadsort)(array, nmemb, cmp);
 			return;
 		}
 		FUNC(flux_analyze)(pta, swap, nmemb, nmemb, cmp);
@@ -506,15 +505,15 @@ void FUNC(fluxsort)(void *array, size_t nmemb, CMPFUNC *cmp)
 
 void FUNC(fluxsort_swap)(void *array, void *swap, size_t swap_size, size_t nmemb, CMPFUNC *cmp)
 {
-	VAR *pta = (VAR *) array;
-	VAR *pts = (VAR *) swap;
-
 	if (nmemb <= 132)
 	{
-		FUNC(quadsort_swap)(pta, pts, swap_size, nmemb, cmp);
+		FUNC(quadsort_swap)(array, swap, swap_size, nmemb, cmp);
 	}
 	else
 	{
+		VAR *pta = (VAR *) array;
+		VAR *pts = (VAR *) swap;
+
 		FUNC(flux_analyze)(pta, pts, swap_size, nmemb, cmp);
 	}
 }
