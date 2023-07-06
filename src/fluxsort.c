@@ -147,6 +147,7 @@ void FUNC(flux_analyze)(VAR *array, VAR *swap, size_t swap_size, size_t nmemb, C
 		asum = bsum = csum = dsum = 1;
 	}
 #endif
+
 	switch (asum + bsum * 2 + csum * 4 + dsum * 8)
 	{
 		case 0:
@@ -350,8 +351,9 @@ void FUNC(flux_reverse_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, siz
 {
 	size_t a_size, s_size;
 
+#if !defined __clang__
 	{
-		size_t cnt, val, m;
+		size_t cnt, m, val;
 		VAR *pts = swap;
 
 		for (m = 0, cnt = nmemb / 8 ; cnt ; cnt--)
@@ -373,6 +375,31 @@ void FUNC(flux_reverse_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, siz
 		a_size = m;
 		s_size = nmemb - a_size;
 	}
+#else
+	{
+		size_t cnt;
+		VAR *tmp, *pta = array, *pts = swap;
+
+		for (cnt = nmemb / 8 ; cnt ; cnt--)
+		{
+			tmp = cmp(piv, ptx) > 0 ? pta++ : pts++; *tmp = *ptx++;
+			tmp = cmp(piv, ptx) > 0 ? pta++ : pts++; *tmp = *ptx++;
+			tmp = cmp(piv, ptx) > 0 ? pta++ : pts++; *tmp = *ptx++;
+			tmp = cmp(piv, ptx) > 0 ? pta++ : pts++; *tmp = *ptx++;
+			tmp = cmp(piv, ptx) > 0 ? pta++ : pts++; *tmp = *ptx++;
+			tmp = cmp(piv, ptx) > 0 ? pta++ : pts++; *tmp = *ptx++;
+			tmp = cmp(piv, ptx) > 0 ? pta++ : pts++; *tmp = *ptx++;
+			tmp = cmp(piv, ptx) > 0 ? pta++ : pts++; *tmp = *ptx++;
+		}
+
+		for (cnt = nmemb % 8 ; cnt ; cnt--)
+		{
+			tmp = cmp(piv, ptx) > 0 ? pta++ : pts++; *tmp = *ptx++;
+		}
+		a_size = pta - array;
+		s_size = pts - swap;
+	}
+#endif
 	memcpy(array + a_size, swap, s_size * sizeof(VAR));
 
 	if (s_size <= a_size / 16 || a_size <= FLUX_OUT)
@@ -385,7 +412,10 @@ void FUNC(flux_reverse_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, siz
 
 size_t FUNC(flux_default_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmemb, CMPFUNC *cmp)
 {
-	size_t run = 0, val, a = 0, m = 0;
+	size_t run = 0, a = 0, m = 0;
+
+#if !defined __clang__
+	size_t val;
 
 	for (a = 8 ; a <= nmemb ; a += 8)
 	{
@@ -405,6 +435,31 @@ size_t FUNC(flux_default_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, s
 	{
 		val = cmp(ptx, piv) <= 0; swap[-m] = array[m] = *ptx++; m += val; swap++;
 	}
+	swap -= nmemb;
+#else
+	VAR *tmp, *pta = array, *pts = swap;
+
+	for (a = 8 ; a <= nmemb ; a += 8)
+	{
+		tmp = cmp(ptx, piv) <= 0 ? pta++ : pts++; *tmp = *ptx++;
+		tmp = cmp(ptx, piv) <= 0 ? pta++ : pts++; *tmp = *ptx++;
+		tmp = cmp(ptx, piv) <= 0 ? pta++ : pts++; *tmp = *ptx++;
+		tmp = cmp(ptx, piv) <= 0 ? pta++ : pts++; *tmp = *ptx++;
+
+		tmp = cmp(ptx, piv) <= 0 ? pta++ : pts++; *tmp = *ptx++;
+		tmp = cmp(ptx, piv) <= 0 ? pta++ : pts++; *tmp = *ptx++;
+		tmp = cmp(ptx, piv) <= 0 ? pta++ : pts++; *tmp = *ptx++;
+		tmp = cmp(ptx, piv) <= 0 ? pta++ : pts++; *tmp = *ptx++;
+
+		if (pta == array || pts == swap) run = a;
+	}
+
+	for (a = nmemb % 8 ; a ; a--)
+	{
+		tmp = cmp(ptx, piv) <= 0 ? pta++ : pts++; *tmp = *ptx++;
+	}
+	m = pta - array;
+#endif
 
 	if (run <= nmemb / 4)
 	{
@@ -416,7 +471,6 @@ size_t FUNC(flux_default_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, s
 		return m;
 	}
 
-	swap -= nmemb;
 	a = nmemb - m;
 
 	memcpy(array + m, swap, a * sizeof(VAR));

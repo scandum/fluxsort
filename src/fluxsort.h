@@ -292,6 +292,49 @@ void fluxsort_prim(void *array, size_t nmemb, size_t size)
 	}
 }
 
+// Sort arrays of structures, the comparison function must be by reference.
+
+void fluxsort_size(void *array, size_t nmemb, size_t size, CMPFUNC *cmp)
+{
+	char **pti, *pta, *pts;
+	size_t index, offset;
+
+	pta = (char *) array;
+	pti = (char **) malloc(nmemb * sizeof(char *));
+
+	assert(pti != NULL);
+
+	for (index = offset = 0 ; index < nmemb ; index++)
+	{
+		pti[index] = pta + offset;
+
+		offset += size;
+	}
+
+	switch (sizeof(size_t))
+	{
+		case 4: fluxsort32(pti, nmemb, cmp); break;
+		case 8: fluxsort64(pti, nmemb, cmp); break;
+	}
+
+	pts = (char *) malloc(nmemb * size);
+
+	assert(pts != NULL);
+	
+	for (index = 0 ; index < nmemb ; index++)
+	{
+		memcpy(pts, pti[index], size);
+
+		pts += size;
+	}
+	pts -= nmemb * size;
+
+	memcpy(array, pts, nmemb * size);
+
+	free(pti);
+	free(pts);
+}
+
 #undef QUAD_CACHE
 
 #endif
