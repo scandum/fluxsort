@@ -102,6 +102,8 @@ Fluxsort uses the same interface as qsort, which is described in [man qsort](htt
 
 Fluxsort comes with the fluxsort_prim(void *array, size_t nmemb, size_t size) function to perform primitive comparisons on arrays of 32 and 64 bit integers. Nmemb is the number of elements. Size should be either sizeof(int) or sizeof(long long) for signed integers, and sizeof(int) + 1 or sizeof(long long) + 1 for unsigned integers. Support for additional primitive as well as custom types can be added to fluxsort.h and quadsort.h.
 
+Fluxsort comes with the fluxsort_size(void *array, size_t nmemb, size_t size, CMPFUNC *cmp) function to sort elements of any given size. The comparison function needs to be by reference, instead of by value, as if you are sorting an array of pointers.
+
 Memory
 ------
 Fluxsort allocates n elements of swap memory, which is shared with quadsort. Recursion requires log n stack memory.
@@ -417,60 +419,60 @@ Some additional context is required for this benchmark. Glidesort is written and
 
 |      Name |    Items | Type |     Best |  Average |     Loops | Samples |     Distribution |
 | --------- | -------- | ---- | -------- | -------- | --------- | ------- | ---------------- |
-|  quadsort |   131072 |   32 | 0.002134 | 0.002152 |         0 |     100 |     random order |
-|  fluxsort |   131072 |   32 | 0.002464 | 0.002502 |         0 |     100 |     random order |
-| glidesort |   131072 |   32 | 0.002999 | 0.003017 |         0 |     100 |     random order |
+|  quadsort |   131072 |   32 | 0.002171 | 0.002189 |         0 |     100 |     random order |
+|  fluxsort |   131072 |   32 | 0.002206 | 0.002227 |         0 |     100 |     random order |
+| glidesort |   131072 |   32 | 0.003062 | 0.003113 |         0 |     100 |     random order |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001709 | 0.001733 |         0 |     100 |     random % 100 |
-|  fluxsort |   131072 |   32 | 0.000902 | 0.000908 |         0 |     100 |     random % 100 |
-| glidesort |   131072 |   32 | 0.001011 | 0.001035 |         0 |     100 |     random % 100 |
+|  quadsort |   131072 |   32 | 0.001741 | 0.001774 |         0 |     100 |     random % 100 |
+|  fluxsort |   131072 |   32 | 0.000798 | 0.000810 |         0 |     100 |     random % 100 |
+| glidesort |   131072 |   32 | 0.001031 | 0.001048 |         0 |     100 |     random % 100 |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000061 | 0.000062 |         0 |     100 |  ascending order |
-|  fluxsort |   131072 |   32 | 0.000058 | 0.000059 |         0 |     100 |  ascending order |
-| glidesort |   131072 |   32 | 0.000091 | 0.000092 |         0 |     100 |  ascending order |
+|  quadsort |   131072 |   32 | 0.000058 | 0.000060 |         0 |     100 |  ascending order |
+|  fluxsort |   131072 |   32 | 0.000058 | 0.000060 |         0 |     100 |  ascending order |
+| glidesort |   131072 |   32 | 0.000091 | 0.000094 |         0 |     100 |  ascending order |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000335 | 0.000349 |         0 |     100 |    ascending saw |
-|  fluxsort |   131072 |   32 | 0.000334 | 0.000339 |         0 |     100 |    ascending saw |
-| glidesort |   131072 |   32 | 0.000346 | 0.000356 |         0 |     100 |    ascending saw |
+|  quadsort |   131072 |   32 | 0.000341 | 0.000359 |         0 |     100 |    ascending saw |
+|  fluxsort |   131072 |   32 | 0.000340 | 0.000344 |         0 |     100 |    ascending saw |
+| glidesort |   131072 |   32 | 0.000352 | 0.000357 |         0 |     100 |    ascending saw |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000231 | 0.000242 |         0 |     100 |       pipe organ |
-|  fluxsort |   131072 |   32 | 0.000222 | 0.000229 |         0 |     100 |       pipe organ |
-| glidesort |   131072 |   32 | 0.000229 | 0.000239 |         0 |     100 |       pipe organ |
+|  quadsort |   131072 |   32 | 0.000231 | 0.000245 |         0 |     100 |       pipe organ |
+|  fluxsort |   131072 |   32 | 0.000222 | 0.000228 |         0 |     100 |       pipe organ |
+| glidesort |   131072 |   32 | 0.000229 | 0.000238 |         0 |     100 |       pipe organ |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000073 | 0.000081 |         0 |     100 | descending order |
-|  fluxsort |   131072 |   32 | 0.000073 | 0.000082 |         0 |     100 | descending order |
-| glidesort |   131072 |   32 | 0.000105 | 0.000109 |         0 |     100 | descending order |
+|  quadsort |   131072 |   32 | 0.000074 | 0.000075 |         0 |     100 | descending order |
+|  fluxsort |   131072 |   32 | 0.000072 | 0.000075 |         0 |     100 | descending order |
+| glidesort |   131072 |   32 | 0.000105 | 0.000107 |         0 |     100 | descending order |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000366 | 0.000369 |         0 |     100 |   descending saw |
-|  fluxsort |   131072 |   32 | 0.000348 | 0.000354 |         0 |     100 |   descending saw |
-| glidesort |   131072 |   32 | 0.000357 | 0.000361 |         0 |     100 |   descending saw |
+|  quadsort |   131072 |   32 | 0.000372 | 0.000379 |         0 |     100 |   descending saw |
+|  fluxsort |   131072 |   32 | 0.000354 | 0.000370 |         0 |     100 |   descending saw |
+| glidesort |   131072 |   32 | 0.000362 | 0.000370 |         0 |     100 |   descending saw |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000687 | 0.000702 |         0 |     100 |      random tail |
-|  fluxsort |   131072 |   32 | 0.000792 | 0.000819 |         0 |     100 |      random tail |
-| glidesort |   131072 |   32 | 0.000939 | 0.000970 |         0 |     100 |      random tail |
+|  quadsort |   131072 |   32 | 0.000701 | 0.000712 |         0 |     100 |      random tail |
+|  fluxsort |   131072 |   32 | 0.000738 | 0.000748 |         0 |     100 |      random tail |
+| glidesort |   131072 |   32 | 0.000953 | 0.000970 |         0 |     100 |      random tail |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001177 | 0.001200 |         0 |     100 |      random half |
-|  fluxsort |   131072 |   32 | 0.001384 | 0.001401 |         0 |     100 |      random half |
-| glidesort |   131072 |   32 | 0.001625 | 0.001652 |         0 |     100 |      random half |
+|  quadsort |   131072 |   32 | 0.001196 | 0.001213 |         0 |     100 |      random half |
+|  fluxsort |   131072 |   32 | 0.001266 | 0.001285 |         0 |     100 |      random half |
+| glidesort |   131072 |   32 | 0.001653 | 0.001702 |         0 |     100 |      random half |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001643 | 0.001686 |         0 |     100 |  ascending tiles |
-|  fluxsort |   131072 |   32 | 0.000579 | 0.000590 |         0 |     100 |  ascending tiles |
-| glidesort |   131072 |   32 | 0.002516 | 0.002543 |         0 |     100 |  ascending tiles |
+|  quadsort |   131072 |   32 | 0.001655 | 0.001694 |         0 |     100 |  ascending tiles |
+|  fluxsort |   131072 |   32 | 0.000356 | 0.000360 |         0 |     100 |  ascending tiles |
+| glidesort |   131072 |   32 | 0.002558 | 0.002579 |         0 |     100 |  ascending tiles |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.002184 | 0.002199 |         0 |     100 |     bit reversal |
-|  fluxsort |   131072 |   32 | 0.002223 | 0.002257 |         0 |     100 |     bit reversal |
-| glidesort |   131072 |   32 | 0.002735 | 0.002765 |         0 |     100 |     bit reversal |
+|  quadsort |   131072 |   32 | 0.002219 | 0.002251 |         0 |     100 |     bit reversal |
+|  fluxsort |   131072 |   32 | 0.002242 | 0.002258 |         0 |     100 |     bit reversal |
+| glidesort |   131072 |   32 | 0.002785 | 0.002819 |         0 |     100 |     bit reversal |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001456 | 0.001474 |         0 |     100 |       random % 2 |
-|  fluxsort |   131072 |   32 | 0.000359 | 0.000364 |         0 |     100 |       random % 2 |
-| glidesort |   131072 |   32 | 0.000443 | 0.000464 |         0 |     100 |       random % 2 |
+|  quadsort |   131072 |   32 | 0.001484 | 0.001528 |         0 |     100 |       random % 2 |
+|  fluxsort |   131072 |   32 | 0.000307 | 0.000313 |         0 |     100 |       random % 2 |
+| glidesort |   131072 |   32 | 0.000449 | 0.000455 |         0 |     100 |       random % 2 |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001332 | 0.001362 |         0 |     100 |           signal |
-|  fluxsort |   131072 |   32 | 0.001587 | 0.001602 |         0 |     100 |           signal |
-| glidesort |   131072 |   32 | 0.003688 | 0.003711 |         0 |     100 |           signal |
+|  quadsort |   131072 |   32 | 0.001355 | 0.001388 |         0 |     100 |           signal |
+|  fluxsort |   131072 |   32 | 0.001559 | 0.001581 |         0 |     100 |           signal |
+| glidesort |   131072 |   32 | 0.003775 | 0.003808 |         0 |     100 |           signal |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001923 | 0.001947 |         0 |     100 |      exponential |
-|  fluxsort |   131072 |   32 | 0.001281 | 0.001291 |         0 |     100 |      exponential |
-| glidesort |   131072 |   32 | 0.002313 | 0.002335 |         0 |     100 |      exponential |
+|  quadsort |   131072 |   32 | 0.001952 | 0.001977 |         0 |     100 |      exponential |
+|  fluxsort |   131072 |   32 | 0.001129 | 0.001139 |         0 |     100 |      exponential |
+| glidesort |   131072 |   32 | 0.002357 | 0.002384 |         0 |     100 |      exponential |
 
 </details>
