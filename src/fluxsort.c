@@ -1,31 +1,4 @@
-/*
-	Copyright (C) 2014-2022 Igor van den Hoven ivdhoven@gmail.com
-*/
-
-/*
-	Permission is hereby granted, free of charge, to any person obtaining
-	a copy of this software and associated documentation files (the
-	"Software"), to deal in the Software without restriction, including
-	without limitation the rights to use, copy, modify, merge, publish,
-	distribute, sublicense, and/or sell copies of the Software, and to
-	permit persons to whom the Software is furnished to do so, subject to
-	the following conditions:
-
-	The above copyright notice and this permission notice shall be
-	included in all copies or substantial portions of the Software.
-
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-	EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-	MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-	CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-	TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
-/*
-	fluxsort 1.2.1.2
-*/
+// fluxsort 1.2.1.2 - Igor van den Hoven ivdhoven@gmail.com
 
 #define FLUX_OUT 96
 
@@ -305,7 +278,7 @@ VAR FUNC(median_of_nine)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 	return swap[(x == y) + (y ^ z)];
 }
 
-VAR FUNC(median_of_cbrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC *cmp)
+VAR FUNC(median_of_cbrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, int *generic, CMPFUNC *cmp)
 {
 	VAR *pta, *ptb, *pts;
 	size_t cnt, div, cbrt;
@@ -314,7 +287,7 @@ VAR FUNC(median_of_cbrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC 
 
 	div = nmemb / cbrt;
 
-	pta = ptx; // + (size_t) &div / 16 % div; // for a non-deterministic offset
+	pta = ptx + (size_t) &div / 16 % div; // for a non-deterministic offset
 	pts = ptx == array ? swap : array;
 
 	for (cnt = 0 ; cnt < cbrt ; cnt++)
@@ -341,6 +314,8 @@ VAR FUNC(median_of_cbrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, CMPFUNC 
 
 	FUNC(quadsort_swap)(pts, pts + cbrt * 2, cbrt, cbrt, cmp);
 	FUNC(quadsort_swap)(pts + cbrt, pts + cbrt * 2, cbrt, cbrt, cmp);
+
+	*generic = cmp(pts + cbrt * 2 - 1, pts) <= 0;
 
 	return FUNC(binary_median)(pts, pts + cbrt, cbrt, cmp);
 }
@@ -484,18 +459,29 @@ size_t FUNC(flux_default_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, s
 void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmemb, CMPFUNC *cmp)
 {
 	size_t a_size = 0, s_size;
+	int generic = 0;
 
 	while (1)
 	{
 		--piv;
 
-		if (nmemb <= 2024)
+		if (nmemb <= 2048)
 		{
 			*piv = FUNC(median_of_nine)(ptx, nmemb, cmp);
 		}
 		else
 		{
-			*piv = FUNC(median_of_cbrt)(array, swap, ptx, nmemb, cmp);
+			*piv = FUNC(median_of_cbrt)(array, swap, ptx, nmemb, &generic, cmp);
+
+			if (generic)
+			{
+				if (ptx == swap)
+				{
+					memcpy(array, swap, nmemb * sizeof(VAR));
+				}
+				FUNC(quadsort_swap)(array, swap, nmemb, nmemb, cmp);
+				return;
+			}
 		}
 
 		if (a_size && cmp(piv + 1, piv) <= 0)
@@ -527,7 +513,14 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmem
 
 		if (s_size <= a_size / 16 || a_size <= FLUX_OUT)
 		{
-			FUNC(quadsort_swap)(array, swap, a_size, a_size, cmp);
+			if (a_size <= FLUX_OUT)
+			{
+				FUNC(quadsort_swap)(array, swap, a_size, a_size, cmp);
+			}
+			else
+			{
+				FUNC(flux_reverse_partition)(array, swap, array, piv, a_size, cmp);
+			}
 			return;
 		}
 		nmemb = a_size;
