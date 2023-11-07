@@ -6,37 +6,35 @@ Analyzer
 --------
 Fluxsort starts out with an analyzer that handles fully in-order arrays and reverse-order arrays using n comparisons. It also splits the array in 4 segments and obtains a measure of presortedness for each segment, switching to [quadsort](https://github.com/scandum/quadsort) if the segment is more than 50% ordered.
 
-While arguably not as adaptive as the bottom-up analyzer used by quadsort, a top-down analyzer works well because quicksort significantly benefits from sorting longer ranges. This approach results in more robust overall adaptivity as fluxsort cannot be tricked into performing less efficient partitions by small sorted runs. In addition, the analyzer executes what could be considered a partial top-down merge on the 4 segments.
+While not as adaptive as the bottom-up run detection used by quadsort, a top-down analyzer works well because quicksort significantly benefits from sorting longer ranges. This approach results in more robust overall adaptivity as fluxsort cannot be tricked into performing less efficient partitions on small sorted runs.
 
-Increasing the segments from 4 to 16 is challenging due to register pressure.
+Increasing the segments from 4 to 16 is challenging due to register pressure and code size.
 
 Partitioning
 ------------
-Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the quasimedian of 8 for partitions smaller than 2024 elements, and the quasimedian of 32, 64, 128, 256, 512, or 1024 for larger partitions, making the pivot selection an approximation of the cubic root of the partition size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 96 elements are sorted with quadsort.
+Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the quasimedian of 9 for partitions smaller than 2024 elements, and the quasimedian of 32, 64, 128, 256, 512, or 1024 for larger partitions, making the pivot selection an approximation of the cubic root of the partition size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 96 elements are sorted with quadsort.
 
 Quasimedian selection differs from traditional pseudomedian (median of medians) selection by utilizing a combination of the median of 4, quadsort, and a binary search.
 
 After obtaining a pivot the array is parsed from start to end. Elements smaller than the pivot are copied in-place to the start of the array, elements greater than the pivot are copied to swap memory. The partitioning routine is called recursively on the two partitions in main and swap memory.
 
-Recursively partitioning through both swap and main memory is accomplished by passing along a pointer (ptx) to either swap or main memory, so swap memory does not need to be copied back to main memory before it can be partitioned again.
+The flux partitioning scheme is partially in-place, giving it a performance advantage over mergesort for large arrays.
 
 Worst case handling
 -------------------
-To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the observed chance of a false positive is 1 in 3,000 for the quasimedian of 8 and less than 1 in 10 million for the quasimedian of 32.
+To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the observed chance of a false positive is 1 in 3,000 for the quasimedian of 9 and less than 1 in 10 million for the quasimedian of 32.
 
-Combined with the analyzer fluxsort starts out with this makes the existence of killer patterns unlikely.
+Combined with the analyzer fluxsort starts out with this guarantees a worst case of `n log n` comparisons.
 
 Branchless optimizations
 ------------------------
 Fluxsort uses a branchless comparison optimization. The ability of quicksort to partition branchless was first described in "BlockQuicksort: How Branch Mispredictions don't affect Quicksort" by Stefan Edelkamp and Armin Weiss. Since Fluxsort uses auxiliary memory, the partitioning scheme is simpler and faster than the one used by BlockQuicksort.
 
-Median selection uses a branchless comparison technique that selects the quasimedian of 8 using 15 comparisons, and the quasimedian of 32 using 78 comparisons.
+Median selection uses a branchless comparison technique that selects the quasimedian of 9 using 15 comparisons, and the quasimedian of 32 using 78 comparisons.
 
-When sorting, branchless comparisons are primarily useful to take advantage of memory-level parallelism. After writing data, the process can continue without having to wait for the write operation to have actually finished, and the process will primarily stall when a cache line is fetched. Since quicksort partitions to two memory regions, part of the loop can continue, reducing the wait time for cache line fetches. This gives an overall performance gain, even though the branchless operation is more expensive due to a lack of support for branchless operations in C and gcc.
+When sorting, branchless comparisons are primarily useful to take advantage of memory-level parallelism. After writing data, the process can continue without having to wait for the write operation to have actually finished, and the process will primarily stall when a cache line is fetched. Since quicksort partitions to two memory regions, part of the loop can continue, reducing the wait time for cache line fetches. This gives an overall performance gain, even though the branchless operation is more expensive due to a lack of support for efficient branchless operations in C / gcc.
 
-Using the clang compiler it's possible to create a branchless ternary merge using `*dest++ = (*left <= *right) ? *left++ : *right++` but C doesn't allow for a branchless ternary partition, which would look like: `*left++ : *right++ ? (*from <= *pivot) = *from++`. Subsequently branchless partitioning has to make `n log n` unnecessary moves.
-
-When the comparison becomes more expensive (like string comparisons), the size of the type is increased, the size of the partition is increased, or the comparison accesses uncached memory regions, the benefit of memory-level parallelism is reduced, and can even result in slower overall execution. While it's possible to write to four memory regions at once, instead of two, the cost-benefit is dubious for a general purpose sort, the added complexity would make porting and validating the code less appealing, and the performance gains are hardware dependent.
+When the comparison becomes more expensive (like string comparisons), the size of the type is increased, the size of the partition is increased, or the comparison accesses uncached memory regions, the benefit of memory-level parallelism is reduced, and can even result in slower overall execution. While it's possible to write to four memory regions at once, instead of two, the cost-benefit is dubious.
 
 Quadsort, as of September 2021, uses a branchless optimization as well, and writes to two distinct memory regions by merging both ends of an array simultaneously. For sorting strings and objects quadsort's overall branchless performance is better than fluxsort's with the exception that fluxsort is faster on random data with low cardinality.
 
@@ -44,7 +42,7 @@ As a general note, branch prediction is awesome. Quadsort and fluxsort try to ta
 
 Generic data optimizations
 --------------------------
-Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data handling. If after a partition all elements were smaller or equal to the pivot, a reverse partition is performed, filtering out all elements equal to the pivot, next it carries on as usual. This typically only occurs when sorting tables with many identical values, like gender, age, etc. Fluxsort has a small bias in its pivot selection to increase the odds of this happening. In addition, generic data performance is improved slightly by checking if the same pivot is chosen twice in a row, in which case it performs a reverse partition as well. Pivot retention was first introduced by [pdqsort](https://github.com/orlp/pdqsort).
+Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data handling. If after a partition all elements were smaller or equal to the pivot, a reverse partition is performed, filtering out all elements equal to the pivot, next it carries on as usual. This typically only occurs when sorting tables with many identical values, like gender, age, etc. Generic data performance is improved slightly by checking if the same pivot is chosen twice in a row, in which case it performs a reverse partition as well. Pivot retention was first introduced by [pdqsort](https://github.com/orlp/pdqsort). In addition, in some cases fluxsort will default to quadsort, further improving performance.
 
 ```
 ┌──────────────────────────────────┬───┬──────────────┐
@@ -419,60 +417,60 @@ Some additional context is required for this benchmark. Glidesort is written and
 
 |      Name |    Items | Type |     Best |  Average |     Loops | Samples |     Distribution |
 | --------- | -------- | ---- | -------- | -------- | --------- | ------- | ---------------- |
-|  quadsort |   131072 |   32 | 0.002171 | 0.002189 |         0 |     100 |     random order |
-|  fluxsort |   131072 |   32 | 0.002206 | 0.002227 |         0 |     100 |     random order |
-| glidesort |   131072 |   32 | 0.003062 | 0.003113 |         0 |     100 |     random order |
+|  quadsort |   131072 |   32 | 0.002174 | 0.002209 |         0 |     100 |     random order |
+|  fluxsort |   131072 |   32 | 0.002189 | 0.002205 |         0 |     100 |     random order |
+| glidesort |   131072 |   32 | 0.003065 | 0.003125 |         0 |     100 |     random order |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001741 | 0.001774 |         0 |     100 |     random % 100 |
-|  fluxsort |   131072 |   32 | 0.000798 | 0.000810 |         0 |     100 |     random % 100 |
-| glidesort |   131072 |   32 | 0.001031 | 0.001048 |         0 |     100 |     random % 100 |
+|  quadsort |   131072 |   32 | 0.001623 | 0.001646 |         0 |     100 |     random % 100 |
+|  fluxsort |   131072 |   32 | 0.000837 | 0.000856 |         0 |     100 |     random % 100 |
+| glidesort |   131072 |   32 | 0.001031 | 0.001037 |         0 |     100 |     random % 100 |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000058 | 0.000060 |         0 |     100 |  ascending order |
+|  quadsort |   131072 |   32 | 0.000061 | 0.000063 |         0 |     100 |  ascending order |
 |  fluxsort |   131072 |   32 | 0.000058 | 0.000060 |         0 |     100 |  ascending order |
-| glidesort |   131072 |   32 | 0.000091 | 0.000094 |         0 |     100 |  ascending order |
+| glidesort |   131072 |   32 | 0.000091 | 0.000093 |         0 |     100 |  ascending order |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000341 | 0.000359 |         0 |     100 |    ascending saw |
-|  fluxsort |   131072 |   32 | 0.000340 | 0.000344 |         0 |     100 |    ascending saw |
-| glidesort |   131072 |   32 | 0.000352 | 0.000357 |         0 |     100 |    ascending saw |
+|  quadsort |   131072 |   32 | 0.000345 | 0.000353 |         0 |     100 |    ascending saw |
+|  fluxsort |   131072 |   32 | 0.000341 | 0.000349 |         0 |     100 |    ascending saw |
+| glidesort |   131072 |   32 | 0.000351 | 0.000358 |         0 |     100 |    ascending saw |
 |           |          |      |          |          |           |         |                  |
 |  quadsort |   131072 |   32 | 0.000231 | 0.000245 |         0 |     100 |       pipe organ |
 |  fluxsort |   131072 |   32 | 0.000222 | 0.000228 |         0 |     100 |       pipe organ |
-| glidesort |   131072 |   32 | 0.000229 | 0.000238 |         0 |     100 |       pipe organ |
+| glidesort |   131072 |   32 | 0.000228 | 0.000235 |         0 |     100 |       pipe organ |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000074 | 0.000075 |         0 |     100 | descending order |
-|  fluxsort |   131072 |   32 | 0.000072 | 0.000075 |         0 |     100 | descending order |
-| glidesort |   131072 |   32 | 0.000105 | 0.000107 |         0 |     100 | descending order |
+|  quadsort |   131072 |   32 | 0.000074 | 0.000076 |         0 |     100 | descending order |
+|  fluxsort |   131072 |   32 | 0.000073 | 0.000076 |         0 |     100 | descending order |
+| glidesort |   131072 |   32 | 0.000106 | 0.000110 |         0 |     100 | descending order |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000372 | 0.000379 |         0 |     100 |   descending saw |
-|  fluxsort |   131072 |   32 | 0.000354 | 0.000370 |         0 |     100 |   descending saw |
-| glidesort |   131072 |   32 | 0.000362 | 0.000370 |         0 |     100 |   descending saw |
+|  quadsort |   131072 |   32 | 0.000373 | 0.000380 |         0 |     100 |   descending saw |
+|  fluxsort |   131072 |   32 | 0.000355 | 0.000371 |         0 |     100 |   descending saw |
+| glidesort |   131072 |   32 | 0.000363 | 0.000369 |         0 |     100 |   descending saw |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.000701 | 0.000712 |         0 |     100 |      random tail |
-|  fluxsort |   131072 |   32 | 0.000738 | 0.000748 |         0 |     100 |      random tail |
-| glidesort |   131072 |   32 | 0.000953 | 0.000970 |         0 |     100 |      random tail |
+|  quadsort |   131072 |   32 | 0.000685 | 0.000697 |         0 |     100 |      random tail |
+|  fluxsort |   131072 |   32 | 0.000720 | 0.000726 |         0 |     100 |      random tail |
+| glidesort |   131072 |   32 | 0.000953 | 0.000966 |         0 |     100 |      random tail |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001196 | 0.001213 |         0 |     100 |      random half |
-|  fluxsort |   131072 |   32 | 0.001266 | 0.001285 |         0 |     100 |      random half |
-| glidesort |   131072 |   32 | 0.001653 | 0.001702 |         0 |     100 |      random half |
+|  quadsort |   131072 |   32 | 0.001192 | 0.001204 |         0 |     100 |      random half |
+|  fluxsort |   131072 |   32 | 0.001251 | 0.001266 |         0 |     100 |      random half |
+| glidesort |   131072 |   32 | 0.001650 | 0.001679 |         0 |     100 |      random half |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001655 | 0.001694 |         0 |     100 |  ascending tiles |
-|  fluxsort |   131072 |   32 | 0.000356 | 0.000360 |         0 |     100 |  ascending tiles |
-| glidesort |   131072 |   32 | 0.002558 | 0.002579 |         0 |     100 |  ascending tiles |
+|  quadsort |   131072 |   32 | 0.001472 | 0.001507 |         0 |     100 |  ascending tiles |
+|  fluxsort |   131072 |   32 | 0.000578 | 0.000589 |         0 |     100 |  ascending tiles |
+| glidesort |   131072 |   32 | 0.002559 | 0.002576 |         0 |     100 |  ascending tiles |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.002219 | 0.002251 |         0 |     100 |     bit reversal |
-|  fluxsort |   131072 |   32 | 0.002242 | 0.002258 |         0 |     100 |     bit reversal |
-| glidesort |   131072 |   32 | 0.002785 | 0.002819 |         0 |     100 |     bit reversal |
+|  quadsort |   131072 |   32 | 0.002210 | 0.002231 |         0 |     100 |     bit reversal |
+|  fluxsort |   131072 |   32 | 0.002042 | 0.002053 |         0 |     100 |     bit reversal |
+| glidesort |   131072 |   32 | 0.002787 | 0.002807 |         0 |     100 |     bit reversal |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001484 | 0.001528 |         0 |     100 |       random % 2 |
-|  fluxsort |   131072 |   32 | 0.000307 | 0.000313 |         0 |     100 |       random % 2 |
+|  quadsort |   131072 |   32 | 0.001237 | 0.001278 |         0 |     100 |       random % 2 |
+|  fluxsort |   131072 |   32 | 0.000227 | 0.000233 |         0 |     100 |       random % 2 |
 | glidesort |   131072 |   32 | 0.000449 | 0.000455 |         0 |     100 |       random % 2 |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001355 | 0.001388 |         0 |     100 |           signal |
-|  fluxsort |   131072 |   32 | 0.001559 | 0.001581 |         0 |     100 |           signal |
-| glidesort |   131072 |   32 | 0.003775 | 0.003808 |         0 |     100 |           signal |
+|  quadsort |   131072 |   32 | 0.001123 | 0.001153 |         0 |     100 |           signal |
+|  fluxsort |   131072 |   32 | 0.001269 | 0.001285 |         0 |     100 |           signal |
+| glidesort |   131072 |   32 | 0.003760 | 0.003776 |         0 |     100 |           signal |
 |           |          |      |          |          |           |         |                  |
-|  quadsort |   131072 |   32 | 0.001952 | 0.001977 |         0 |     100 |      exponential |
-|  fluxsort |   131072 |   32 | 0.001129 | 0.001139 |         0 |     100 |      exponential |
-| glidesort |   131072 |   32 | 0.002357 | 0.002384 |         0 |     100 |      exponential |
+|  quadsort |   131072 |   32 | 0.001911 | 0.001956 |         0 |     100 |      exponential |
+|  fluxsort |   131072 |   32 | 0.001134 | 0.001142 |         0 |     100 |      exponential |
+| glidesort |   131072 |   32 | 0.002355 | 0.002373 |         0 |     100 |      exponential |
 
 </details>
