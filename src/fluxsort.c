@@ -280,14 +280,14 @@ VAR FUNC(median_of_nine)(VAR *array, size_t nmemb, CMPFUNC *cmp)
 
 VAR FUNC(median_of_cbrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, int *generic, CMPFUNC *cmp)
 {
-	VAR *pta, *ptb, *pts;
+	VAR *pta, *pts;
 	size_t cnt, div, cbrt;
 
 	for (cbrt = 32 ; nmemb > cbrt * cbrt * cbrt && cbrt < 1024 ; cbrt *= 2) {}
 
 	div = nmemb / cbrt;
 
-	pta = ptx + (size_t) &div / 16 % div; // for a non-deterministic offset
+	pta = ptx + (size_t) &div / 16 % div;
 	pts = ptx == array ? swap : array;
 
 	for (cnt = 0 ; cnt < cbrt ; cnt++)
@@ -296,21 +296,7 @@ VAR FUNC(median_of_cbrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, int *gen
 
 		pta += div;
 	}
-	pta = pts;
-	ptb = pts + cbrt / 2;
-
-	for (cnt = cbrt / 8 ; cnt ; cnt--)
-	{
-		FUNC(trim_four)(pta, cmp);
-		FUNC(trim_four)(ptb, cmp);
-
-		pta[0] = ptb[1];
-		pta[3] = ptb[2];
-
-		pta += 4;
-		ptb += 4;
-	}
-	cbrt /= 4;
+	cbrt /= 2;
 
 	FUNC(quadsort_swap)(pts, pts + cbrt * 2, cbrt, cbrt, cmp);
 	FUNC(quadsort_swap)(pts + cbrt, pts + cbrt * 2, cbrt, cbrt, cmp);
