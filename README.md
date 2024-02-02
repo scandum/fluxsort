@@ -6,17 +6,26 @@ Analyzer
 --------
 Fluxsort starts out with an analyzer that handles fully in-order arrays and reverse-order arrays using n comparisons. It also splits the array in 4 segments and obtains a measure of presortedness for each segment, switching to [quadsort](https://github.com/scandum/quadsort) if the segment is more than 50% ordered.
 
-While not as adaptive as the bottom-up run detection used by quadsort, a top-down analyzer works well because quicksort significantly benefits from sorting longer ranges. This approach results in more robust overall adaptivity as fluxsort cannot be tricked into performing less efficient partitions on small sorted runs.
+While not as adaptive as the bottom-up run detection used by quadsort, a top-down analyzer works well because quicksort significantly benefits from sorting longer ranges. This approach results in more robust overall adaptivity as fluxsort cannot be tricked into performing less efficient partitions on small sorted runs. If only random data is found the analyzer starts skipping ahead, only using n / 4 comparisons to analyze random data.
 
 Increasing the segments from 4 to 16 is challenging due to register pressure and code size.
 
 Partitioning
 ------------
-Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the quasimedian of 9 for partitions smaller than 2024 elements, and the quasimedian of 32, 64, 128, 256, 512, or 1024 for larger partitions, making the pivot selection an approximation of the cubic root of the partition size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 96 elements are sorted with quadsort.
+Partitioning is performed in a top-down manner similar to quicksort. Fluxsort obtains the quasimedian of 9 for partitions smaller than 2024 elements, and the median of 32, 64, 128, 256, 512, or 1024 for larger partitions, making the pivot selection an approximation of the cubic root of the partition size. The median element obtained will be referred to as the pivot. Partitions that grow smaller than 96 elements are sorted with quadsort.
 
-Quasimedian selection differs from traditional pseudomedian (median of medians) selection by utilizing a combination of the median of 4, quadsort, and a binary search.
+For the quasimedian of 9 I developed a very efficient and elegant branchless median of 3 computation.
+```c
+        int x = swap[0] > swap[1];
+        int y = swap[0] > swap[2];
+        int z = swap[1] > swap[2];
 
-After obtaining a pivot the array is parsed from start to end. Elements smaller than the pivot are copied in-place to the start of the array, elements greater than the pivot are copied to swap memory. The partitioning routine is called recursively on the two partitions in main and swap memory.
+        return swap[(x == y) + (y ^ z)];
+```
+
+Fluxsort's cubic root median selection differs from traditional pseudomedian (median of medians) selection by utilizing a combination of quadsort and a binary search.
+
+After obtaining a pivot the array is parsed from start to end. Elements equal or smaller than the pivot are copied in-place to the start of the array, elements greater than the pivot are copied to swap memory. The partitioning routine is called recursively on the two partitions in main and swap memory.
 
 The flux partitioning scheme is partially in-place, giving it a performance advantage over mergesort for large arrays.
 
@@ -24,25 +33,25 @@ Worst case handling
 -------------------
 To avoid run-away recursion fluxsort switches to quadsort for both partitions if one partition is less than 1/16th the size of the other partition. On a distribution of random unique values the observed chance of a false positive is 1 in 3,000 for the quasimedian of 9 and less than 1 in 10 million for the quasimedian of 32.
 
-Combined with the analyzer fluxsort starts out with this guarantees a worst case of `n log n` comparisons.
+Combined with cbrt(n) median selection, this guarantees a worst case of `n log n` comparisons.
 
 Branchless optimizations
 ------------------------
-Fluxsort uses a branchless comparison optimization. The ability of quicksort to partition branchless was first described in "BlockQuicksort: How Branch Mispredictions don't affect Quicksort" by Stefan Edelkamp and Armin Weiss. Since Fluxsort uses auxiliary memory, the partitioning scheme is simpler and faster than the one used by BlockQuicksort.
+Fluxsort uses a branchless comparison optimization. The ability of quicksort to partition branchless was first described in "BlockQuicksort: How Branch Mispredictions don't affect Quicksort" by Stefan Edelkamp and Armin Weiss.[^1] Since Fluxsort uses auxiliary memory, the partitioning scheme is simpler and faster than the one used by BlockQuicksort.
 
-Median selection uses a branchless comparison technique that selects the quasimedian of 9 using 15 comparisons, and the quasimedian of 32 using 78 comparisons.
+Median selection uses a branchless comparison technique that selects the quasimedian of 9 using 15 comparisons, and the median of 32 using 115 comparisons.
 
 When sorting, branchless comparisons are primarily useful to take advantage of memory-level parallelism. After writing data, the process can continue without having to wait for the write operation to have actually finished, and the process will primarily stall when a cache line is fetched. Since quicksort partitions to two memory regions, part of the loop can continue, reducing the wait time for cache line fetches. This gives an overall performance gain, even though the branchless operation is more expensive due to a lack of support for efficient branchless operations in C / gcc.
 
-When the comparison becomes more expensive (like string comparisons), the size of the type is increased, the size of the partition is increased, or the comparison accesses uncached memory regions, the benefit of memory-level parallelism is reduced, and can even result in slower overall execution. While it's possible to write to four memory regions at once, instead of two, the cost-benefit is dubious.
+When the comparison becomes more expensive (like string comparisons), the size of the type is increased, the size of the partition is increased, or the comparison accesses uncached memory regions, the benefit of memory-level parallelism is reduced, and can even result in slower overall execution. While it's possible to write to four memory regions at once, instead of two, the cost-benefit is dubious, though it might be a good strategy for future hardware.
 
-Quadsort, as of September 2021, uses a branchless optimization as well, and writes to two distinct memory regions by merging both ends of an array simultaneously. For sorting strings and objects quadsort's overall branchless performance is better than fluxsort's with the exception that fluxsort is faster on random data with low cardinality.
+Quadsort, as of September 2021, uses a branchless optimization as well, and writes to two distinct memory regions by merging both ends of an array simultaneously. For sorting strings and objects quadsort's overall branchless performance is better than fluxsort's, with the exception that fluxsort is faster on random data with low cardinality.
 
 As a general note, branch prediction is awesome. Quadsort and fluxsort try to take advantage of branch prediction where possible.
 
 Generic data optimizations
 --------------------------
-Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data handling. If after a partition all elements were smaller or equal to the pivot, a reverse partition is performed, filtering out all elements equal to the pivot, next it carries on as usual. This typically only occurs when sorting tables with many identical values, like gender, age, etc. Generic data performance is improved slightly by checking if the same pivot is chosen twice in a row, in which case it performs a reverse partition as well. Pivot retention was first introduced by [pdqsort](https://github.com/orlp/pdqsort). In addition, in some cases fluxsort will default to quadsort, further improving performance.
+Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data handling. If after a partition all elements were smaller or equal to the pivot, a second sweep is performed, filtering out all elements equal to the pivot, next it carries on as usual. This typically only occurs when sorting tables with many identical values, like gender, age, etc. Generic data performance is improved slightly by checking if the same pivot is chosen twice in a row, in which case it performs a reverse partition as well. To my knowledge, pivot retention was first introduced by [pdqsort](https://github.com/orlp/pdqsort). Generic data performance is further improved by defaulting to quadsort in some cases.
 
 ```
 ┌──────────────────────────────────┬───┬──────────────┐
@@ -57,6 +66,7 @@ Fluxsort uses a method that mimicks dual-pivot quicksort to improve generic data
 │    E < P     │ P │    E == P     │ P │     E > P    | 
 └──────────────┴───┴───────────────┴───┴──────────────┘
 ```
+This diagram and the 'second sweep' quicksort optimization for equal keys was described as early as 1985 by Lutz M Wegner.[^2]
 
 Since equal elements are copied back to the input array it is guaranteed that no more than n - 3 elements are copied to swap memory. Subsequently fluxsort can store a stack of previously used pivots at the end of swap memory.
 
@@ -66,7 +76,7 @@ Fluxsort performs low cost run detection while it partitions and switches to qua
 
 Large array optimizations
 -------------------------
-For partitions larger than 32768 elements fluxsort obtains the median of 64, 128, 256, 512, or 1024. It does so by copying random elements to swap memory, filtering out half by utilizing the median of 4, sorting two halves of the remaining elements with quadsort, and returning the center right element using a binary search.
+For partitions larger than 2048 elements fluxsort obtains the median of 32, 64, 128, 256, 512, or 1024. It does so by copying random elements to swap memory, sorting two halves with quadsort, and returning the center right element using a binary search.
 
 Small array optimizations
 -------------------------
@@ -474,3 +484,8 @@ Some additional context is required for this benchmark. Glidesort is written and
 | glidesort |   131072 |   32 | 0.002355 | 0.002373 |         0 |     100 |      exponential |
 
 </details>
+
+Footnotes
+---------
+[^1]: [BlockQuicksort: How Branch Mispredictions don't affect Quicksort, Stefan Edelkamp and Armin Weiß, April 2016](https://arxiv.org/pdf/1604.06697.pdf)
+[^2]: [Quicksort for Equal Keys, Lutz M. Wegner, April 1985](https://www.researchgate.net/publication/220329488_Quicksort_for_Equal_Keys)
