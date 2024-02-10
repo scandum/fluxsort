@@ -1,4 +1,4 @@
-// fluxsort 1.2.1.2 - Igor van den Hoven ivdhoven@gmail.com
+// fluxsort 1.2.1.3 - Igor van den Hoven ivdhoven@gmail.com
 
 #ifndef FLUXSORT_H
 #define FLUXSORT_H

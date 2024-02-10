@@ -1,4 +1,4 @@
-// fluxsort 1.2.1.2 - Igor van den Hoven ivdhoven@gmail.com
+// fluxsort 1.2.1.3 - Igor van den Hoven ivdhoven@gmail.com
 
 #define FLUX_OUT 96
 
@@ -283,7 +283,7 @@ VAR FUNC(median_of_cbrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, int *gen
 	VAR *pta, *pts;
 	size_t cnt, div, cbrt;
 
-	for (cbrt = 32 ; nmemb > cbrt * cbrt * cbrt && cbrt < 1024 ; cbrt *= 2) {}
+	for (cbrt = 32 ; nmemb > cbrt * cbrt * cbrt ; cbrt *= 2) {}
 
 	div = nmemb / cbrt;
 
@@ -301,7 +301,7 @@ VAR FUNC(median_of_cbrt)(VAR *array, VAR *swap, VAR *ptx, size_t nmemb, int *gen
 	FUNC(quadsort_swap)(pts, pts + cbrt * 2, cbrt, cbrt, cmp);
 	FUNC(quadsort_swap)(pts + cbrt, pts + cbrt * 2, cbrt, cbrt, cmp);
 
-	*generic = cmp(pts + cbrt * 2 - 1, pts) <= 0;
+	*generic = (cmp(pts + cbrt * 2 - 1, pts) <= 0) & (cmp(pts + cbrt - 1, pts) <= 0);
 
 	return FUNC(binary_median)(pts, pts + cbrt, cbrt, cmp);
 }
@@ -478,7 +478,7 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmem
 		a_size = FUNC(flux_default_partition)(array, swap, ptx, piv, nmemb, cmp);
 		s_size = nmemb - a_size;
 
-		if (a_size <= s_size / 16 || s_size <= FLUX_OUT)
+		if (a_size <= s_size / 32 || s_size <= FLUX_OUT)
 		{
 			if (a_size == 0)
 			{
@@ -497,7 +497,7 @@ void FUNC(flux_partition)(VAR *array, VAR *swap, VAR *ptx, VAR *piv, size_t nmem
 			FUNC(flux_partition)(array + a_size, swap, swap, piv, s_size, cmp);
 		}
 
-		if (s_size <= a_size / 16 || a_size <= FLUX_OUT)
+		if (s_size <= a_size / 32 || a_size <= FLUX_OUT)
 		{
 			if (a_size <= FLUX_OUT)
 			{
