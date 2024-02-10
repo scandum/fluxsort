@@ -425,6 +425,8 @@ Some additional context is required for this benchmark. Glidesort is written and
 
 <details><summary>data table</summary>
 
+|      Name |    Items | Type |     Best |  Average |  Compares | Samples |     Distribution |
+| --------- | -------- | ---- | -------- | -------- | --------- | ------- | ---------------- |
 |  quadsort |   131072 |   32 | 0.002162 | 0.002214 |         0 |     100 |     random order |
 |  fluxsort |   131072 |   32 | 0.001947 | 0.002034 |         0 |     100 |     random order |
 | glidesort |   131072 |   32 | 0.003047 | 0.003126 |         0 |     100 |     random order |
