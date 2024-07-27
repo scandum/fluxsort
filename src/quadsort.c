@@ -427,7 +427,7 @@ void FUNC(cross_merge)(VAR *dest, VAR *from, size_t left, size_t right, CMPFUNC 
 	tpl = ptr - 1;
 	tpr = tpl + right;
 
-	if (left + 1 >= right && right + 1 >= left && left >= 32)
+	if (left + 1 >= right && right >= left && left >= 32)
 	{
 		if (cmp(ptl + 15, ptr) > 0 && cmp(ptl, ptr + 15) <= 0 && cmp(tpl, tpr - 15) > 0 && cmp(tpl - 15, tpr) <= 0)
 		{
